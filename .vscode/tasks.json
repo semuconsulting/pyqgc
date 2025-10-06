@@ -1,0 +1,228 @@
+{
+    // These test, build and deploy tasks are targeted at a venv
+    // called 'pygpsclient' located in the user's home directory.
+    // Set your workspace default VSCode Python interpreter to
+    // this venv, i.e.
+    // "${userHome}/pygpsclient/bin/python3" on linux/macos
+    // "${userHome}/pygpsclient/Scripts/python" on windows
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Create Venv",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "venv",
+                "${config:venv}",
+                //"--system-site-packages"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Install Deploy Dependencies",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "--group",
+                "deploy"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rfvd",
+                "build",
+                "dist",
+                "htmlcov",
+                "docs/_build",
+                "${config:modulename}.egg-info",
+            ],
+            "windows": {
+                "command": "rm",
+                "args": [
+                    "-R",
+                    "-Path",
+                    "'src/${config:modulename}.egg-info','build','dist','htmlcov','docs/_build'",
+                    "-ErrorAction",
+                    "SilentlyContinue" // doesn't work! - stops on exit code 1 anyway
+                ]
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Sort Imports",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "isort",
+                "src",
+                "--jobs",
+                "-1"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Format",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "black",
+                "src"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Pylint",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pylint",
+                "src"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Security",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "bandit",
+                "-c",
+                "pyproject.toml",
+                "-r",
+                "."
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Test",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pytest"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Build",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "build",
+                ".",
+                "--wheel",
+                "--sdist",
+            ],
+            "problemMatcher": [],
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Clean",
+                "Security",
+                "Sort Imports",
+                "Format",
+                "Pylint",
+                "Test",
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Sphinx",
+            "type": "process",
+            "command": "sphinx-apidoc",
+            "args": [
+                "--ext-autodoc",
+                "--ext-viewcode",
+                "--templatedir=docs",
+                "-f",
+                "-o",
+                "docs",
+                "src/${config:modulename}"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Sphinx HTML",
+            "type": "process",
+            "command": "/usr/bin/make",
+            "windows": {
+                "command": "${workspaceFolder}/docs/make.bat"
+            },
+            "args": [
+                "html"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/docs"
+            },
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Sphinx"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Sphinx Deploy to S3", // needs AWS credentials
+            "type": "process",
+            "command": "aws",
+            "args": [
+                "s3",
+                "cp",
+                "${workspaceFolder}/docs/_build/html",
+                "s3://www.semuconsulting.com/${config:modulename}/",
+                "--recursive"
+            ],
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Sphinx HTML"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Install Locally",
+            "type": "process",
+            "command": "${config:python.defaultInterpreterPath}",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "--force-reinstall",
+                "--find-links=${workspaceFolder}/dist",
+                "${workspaceFolderBasename}",
+                // "--target",
+                // "${config:venv}/Lib/site-packages"
+            ],
+            "options": {
+                "cwd": "dist"
+            },
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build",
+                "Sphinx HTML"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}
