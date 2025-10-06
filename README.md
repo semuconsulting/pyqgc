@@ -29,7 +29,7 @@ This is an independent project and we have no affiliation whatsoever with Quecte
 ![Contributors](https://img.shields.io/github/contributors/semuconsulting/pyqgc.svg)
 ![Open Issues](https://img.shields.io/github/issues-raw/semuconsulting/pyqgc)
 
-The library currently implements the 3 QGC RAW message types defined for the LG580P receiver, but is readily [extensible](#extensibility). Refer to `QGC_MSGIDS` in [qgctypes_core.py](https://github.com/semuconsulting/pyqgc/blob/master/src/pyqgc/qgctypes_core.py) for the complete dictionary of messages currently supported. QGC protocol information sourced from public domain Quectel Interface Specifications © 2025, Quectel.
+The current alpha release implements 3 QGC RAW message types defined for the LG580P receiver, but is readily [extensible](#extensibility). Refer to `QGC_MSGIDS` in [qgctypes_core.py](https://github.com/semuconsulting/pyqgc/blob/main/src/pyqgc/qgctypes_core.py#L64) for the complete dictionary of messages currently supported. QGC protocol information sourced from public domain Quectel [LG580P GNSS Protocol Specification](https://www.quectel.com/download/quectel_lg290p03lgx80p03_gnss_protocol_specification_v1-1/) © 2025, Quectel.
 
 Sphinx API Documentation in HTML format is available at [https://www.semuconsulting.com/pyqgc/](https://www.semuconsulting.com/pyqgc/).
 
@@ -75,14 +75,14 @@ conda install -c conda-forge pyqgc
 ## <a name="reading">Reading (Streaming)</a>
 
 ```
-class pyqgc.QGCreader.QGCReader(stream, *args, **kwargs)
+class pyqgc.qgcreader.QGCReader(stream, *args, **kwargs)
 ```
 
 You can create a `QGCReader` object by calling the constructor with an active stream object. 
 The stream object can be any viable data stream which supports a `read(n) -> bytes` method (e.g. File or Serial, with 
 or without a buffer wrapper). `pyqgc` implements an internal `SocketWrapper` class to allow sockets to be read in the same way as other streams (see example below).
 
-Individual input QGC messages can then be read using the `QGCReader.read()` function, which returns both the raw binary data (as bytes) and the parsed data (as a `QGCMessage` object, via the `parse()` method). The function is thread-safe in so far as the incoming data stream object is thread-safe. `QGCReader` also implements an iterator.
+Individual QGC messages can then be read using the `QGCReader.read()` function, which returns both the raw binary data (as bytes) and the parsed data (as a `QGCMessage` object, via the `parse()` method). The function is thread-safe in so far as the incoming data stream object is thread-safe. `QGCReader` also implements an iterator.
 
 The constructor accepts the following optional keyword arguments:
 
@@ -93,9 +93,9 @@ The constructor accepts the following optional keyword arguments:
 Example -  Serial input:
 ```python
 from serial import Serial
-from pyqgc import QGCReader
+from pyqgc import QGCReader, VALCKSUM, ERR_LOG
 with Serial('/dev/ttyACM0', 115200, timeout=3) as stream:
-  qgr = QGCReader(stream)
+  qgr = QGCReader(stream, quitonerror=ERR_LOG, validate=VALCKSUM, parsebitfield=1)
   raw_data, parsed_data = qgr.read()
   if parsed_data is not None:
     print(parsed_data)
@@ -106,7 +106,7 @@ with Serial('/dev/ttyACM0', 115200, timeout=3) as stream:
 
 Example - File input (using iterator):
 ```python
-from pyqgc import QGCReader, QGC_PROTOCOL
+from pyqgc import QGCReader
 with open('QGCdata.bin', 'rb') as stream:
   qgr = QGCReader(stream)
   for raw_data, parsed_data in qg:
@@ -120,7 +120,7 @@ with open('QGCdata.bin', 'rb') as stream:
 Example - Socket input (using iterator):
 ```python
 import socket
-from pyqgc import QGCReader, NMEA_PROTOCOL, QGC_PROTOCOL, RTCM3_PROTOCOL
+from pyqgc import QGCReader
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as stream:
   stream.connect(("localhost", 50007))
   qgr = QGCReader(stream)
@@ -146,14 +146,11 @@ The `parse()` method accepts the following optional keyword arguments:
 Example - output message:
 ```python
 from pyqgc import QGCReader
-msg = QGCReader.parse(b'\xb5b\x05\x01\x02\x00\x06\x01\x0f\x38')
-print(msg)
-msg = QGCReader.parse(b'\xb5b\x01\x12$\x000D\n\x18\xfd\xff\xff\xff\xf1\xff\xff\xff\xfc\xff\xff\xff\x10\x00\x00\x00\x0f\x00\x00\x00\x83\xf5\x01\x00A\x00\x00\x00\xf0\xdfz\x00\xd0\xa6')
+msg = QGCReader.parse(b'QG\n\xb2U\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x105\xfcI\x04@\x01?w\x04\x00\x11\x00\x04@\x01\x10\x00D\x00\x11\x00\x05\x80\x00_k\x84\x00\x11\x00\x07}c\x10\x00x\x17\x0f\xfd\xd1\x02W\x10\x00D\x00\x11\x00\x04@\x01\x10\x00X\x7f\x00\x01\x816\xb0\xee\xb1')
 print(msg)
 ```
 ```
-<QGC(RAW-PPPB2B, msgver=1, reserved1=0, prn=60, pppstatus=0, msgtype=0, reserved2=0, msgdata=b'\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0')>
-<QGC(RAW-HASE6, msgver=1, reserved1=0, prn=34, hasmode=1, msgtype=1, reserved2=0, page=2, reserved3=0, msgdata=b'\x38\xb2\x00\xe8\x50\xe9\xa0\x5e\x7f\xc6\x0d\x00\x31\xff\x2e\x00\x00\x5b\xfe\x50\x2c\xc0\xe1\x00\x00\x2f\x77\xe0\x0b\x20\xc6\xe5\x3f\x49\x79\xf0\x10\x50\x11\xf8\xcb\xeb\x7f\x31\x04\x67\xd0\x80\xf2\x05\xc0\x0e\x81\xb2\x00\xe8\x50\xe9\xa0\x5e\x7f\xc6\x0d\x00\x31\xff\x2e\x00\x00\x5b\xfe\x50\x2c\xc0\xe1\x00\x00\x2f\x77\xe0\x0b\x20\xc6\xe5\x3f\x49\x79\xf0\x10\x50\x11\xf8\xcb\xeb\x7f\x31\x04\x67\xd0\x80\xf2\x05\xc0\x0e\x81\xc8')>
+<QGC(RAW-PPPB2B, msgver=0, reserved1=0, prn=0, pppstatus=0, msgtype=0, reserved2=0, msgdata=b'\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0')>
 ```
 
 The `QGCMessage` object exposes different public attributes depending on its message type or 'identity',
@@ -213,12 +210,16 @@ print(msg)
 
 The `QGCMessage` class implements a `serialize()` method to convert a `QGCMessage` object to a bytes array suitable for writing to an output stream.
 
-e.g. to create and send a `CFG-MSG` message:
+e.g. to create and send a `RAW-PPPB2B` message:
 
 ```python
+from serial import Serial
+from pyqgc import QGCMessage
+serialOut = Serial('COM7', 115200, timeout=5)
 print(msg)
 output = msg.serialize()
 print(output)
+serialOut.write(output)
 ```
 ```
 <QGC(RAW-PPPB2B, msgver=0, reserved1=0, prn=0, pppstatus=0, msgtype=0, reserved2=0, msgdata=b'\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0')>
@@ -230,7 +231,7 @@ b'QG\n\xb2U\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
 
 The following command line examples can be found in the `\examples` folder:
 
-1. `qgcusage.py` illustrates basic usage of the QGCMessage and QGCReader classes.
+1. `qgcusage.py` illustrates basic usage of the `QGCMessage` and `QGCReader` classes.
 
 ---
 ## <a name="extensibility">Extensibility</a>
@@ -268,6 +269,6 @@ semuadmin@semuconsulting.com
 
 `pyqgc` is maintained entirely by unpaid volunteers. It receives no funding from advertising or corporate sponsorship. If you find the utility useful, please consider sponsoring the project with the price of a coffee...
 
-[![Sponsor](https://github.com/semuconsulting/pyqgc/blob/master/images/sponsor.png?raw=true)](https://buymeacoffee.com/semuconsulting)
+[![Sponsor](https://github.com/semuconsulting/pyubx2/blob/master/images/sponsor.png?raw=true)](https://buymeacoffee.com/semuconsulting)
 
 [![Freedom for Ukraine](https://github.com/semuadmin/sandpit/blob/main/src/semuadmin_sandpit/resources/ukraine200.jpg?raw=true)](https://u24.gov.ua/)
