@@ -14,7 +14,9 @@ import os
 import unittest
 
 import pyqgc.qgctypes_core as qgt
-from pyqgc import QGCReader
+import pyqgc.exceptions as qge
+from pyqgc.qgctypes_core import SET, GET, VALCKSUM
+from pyqgc import QGCReader, QGCMessage
 from pyqgc.qgchelpers import (
     attsiz,
     att2idx,
@@ -23,6 +25,7 @@ from pyqgc.qgchelpers import (
     calc_checksum,
     escapeall,
     get_bits,
+    getinputmode,
     hextable,
     isvalid_checksum,
     val2bytes,
@@ -36,6 +39,17 @@ class StaticTest(unittest.TestCase):
         self.maxDiff = None
         dirname = os.path.dirname(__file__)
         self.streamQGC = open(os.path.join(dirname, "pygpsdata_lg580p_qgc.log"), "rb")
+        self.qgcmsg = QGCMessage(
+            b"\x0a",
+            b"\xb2",
+            msgmode=GET,
+            parsebitfield=1,
+            msgver=1,
+            prn=60,
+            pppstatus=1,
+            msgtype=1,
+            msgdata=b"\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0",
+        )
 
     def tearDown(self):
         self.streamQGC.close()
@@ -57,6 +71,56 @@ class StaticTest(unittest.TestCase):
     #     for msg in ubp.UBX_PAYLOADS_POLL:
     #         if msg not in ubt.UBX_MSGIDS.values():
     #             print(f"Possible missing core definition {msg} POLL")
+
+    def testConstructor(self):
+        EXPECTED_RESULT = "<QGC(RAW-PPPB2B, msgver=1, reserved1=0, prn=60, pppstatus=1, msgtype=1, reserved2=0, msgdata=b'\\x10\\x35\\xfc\\x49\\x04\\x40\\x01\\x3f\\x77\\x04\\x00\\x11\\x00\\x04\\x40\\x01\\x10\\x00\\x44\\x00\\x11\\x00\\x05\\x80\\x00\\x5f\\x6b\\x84\\x00\\x11\\x00\\x07\\x7d\\x63\\x10\\x00\\x78\\x17\\x0f\\xfd\\xd1\\x02\\x57\\x10\\x00\\x44\\x00\\x11\\x00\\x04\\x40\\x01\\x10\\x00\\x58\\x7f\\x00\\x01\\x81\\x36\\xb0')>"
+        msg = QGCMessage(
+            b"\x0a",
+            b"\xb2",
+            msgmode=GET,
+            parsebitfield=1,
+            msgver=1,
+            prn=60,
+            pppstatus=1,
+            msgtype=1,
+            msgdata=b"\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0",
+        )
+        self.assertEqual(str(msg), EXPECTED_RESULT)
+
+    def testParse(self):
+        EXPECTED_RESULT = "<QGC(RAW-PPPB2B, msgver=1, reserved1=0, prn=60, pppstatus=1, msgtype=1, reserved2=0, msgdata=b'\\x10\\x35\\xfc\\x49\\x04\\x40\\x01\\x3f\\x77\\x04\\x00\\x11\\x00\\x04\\x40\\x01\\x10\\x00\\x44\\x00\\x11\\x00\\x05\\x80\\x00\\x5f\\x6b\\x84\\x00\\x11\\x00\\x07\\x7d\\x63\\x10\\x00\\x78\\x17\\x0f\\xfd\\xd1\\x02\\x57\\x10\\x00\\x44\\x00\\x11\\x00\\x04\\x40\\x01\\x10\\x00\\x58\\x7f\\x00\\x01\\x81\\x36\\xb0')>"
+        msg = QGCMessage(
+            b"\x0a",
+            b"\xb2",
+            msgmode=GET,
+            parsebitfield=1,
+            msgver=1,
+            prn=60,
+            pppstatus=1,
+            msgtype=1,
+            msgdata=b"\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0",
+        )
+        self.assertEqual(
+            msg.serialize(),
+            b"QG\n\xb2U\x00\x01\x00\x00\x00\x00< \x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x105\xfcI\x04@\x01?w\x04\x00\x11\x00\x04@\x01\x10\x00D\x00\x11\x00\x05\x80\x00_k\x84\x00\x11\x00\x07}c\x10\x00x\x17\x0f\xfd\xd1\x02W\x10\x00D\x00\x11\x00\x04@\x01\x10\x00X\x7f\x00\x01\x816\xb0L\xf4",
+        )
+        self.assertEqual(str(QGCReader.parse(msg.serialize())), EXPECTED_RESULT)
+
+    def testRepr(self):
+        EXPECTED_REPR = "QGCMessage(b'\\n', b'\\xb2', 0, payload=b'\\x01\\x00\\x00\\x00\\x00< \\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x105\\xfcI\\x04@\\x01?w\\x04\\x00\\x11\\x00\\x04@\\x01\\x10\\x00D\\x00\\x11\\x00\\x05\\x80\\x00_k\\x84\\x00\\x11\\x00\\x07}c\\x10\\x00x\\x17\\x0f\\xfd\\xd1\\x02W\\x10\\x00D\\x00\\x11\\x00\\x04@\\x01\\x10\\x00X\\x7f\\x00\\x01\\x816\\xb0')"
+        msg = QGCMessage(
+            b"\x0a",
+            b"\xb2",
+            msgmode=GET,
+            parsebitfield=1,
+            msgver=1,
+            prn=60,
+            pppstatus=1,
+            msgtype=1,
+            msgdata=b"\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0",
+        )
+        self.assertEqual(repr(msg), EXPECTED_REPR)
+        self.assertEqual(str(eval(repr(msg))), str(msg))
 
     def testVal2Bytes(self):  # test conversion of value to bytes
         INPUTS = [
@@ -135,6 +199,10 @@ class StaticTest(unittest.TestCase):
         res = hextable(b"$GNGLL,5327.04319,S,00214.41396,E,223232.00,A,A*68\r\n", 8)
         self.assertEqual(res, EXPECTED_RESULT)
 
+    def testgetinputmode(self):
+        res = getinputmode(self.qgcmsg.serialize())
+        self.assertEqual(res, SET)
+
     def testattsiz(self):  # test attsiz
         self.assertEqual(attsiz("CH"), -1)
         self.assertEqual(attsiz("C032"), 32)
@@ -173,6 +241,40 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(res, 0b0000000000000000000001010)
         res = val2signmag(-10, "U24")
         self.assertEqual(res, 0b1000000000000000000001010)
+
+    def testInvMode(self):  # test invalid mode
+        EXPECTED_ERROR = "Invalid msgmode 4 - must be 0, 1 or 2"
+        with self.assertRaisesRegex(qge.QGCMessageError, EXPECTED_ERROR):
+            QGCMessage(
+                b"\x0a",
+                b"\xb2",
+                msgmode=4,
+                parsebitfield=1,
+                msgdata=b"\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0",
+            )
+
+    def testBadCksum(self):  # bad checksum
+        EXPECTED_ERROR = "Message checksum (.*) invalid - should be (.*)"
+        badck = b"QG\n\xb2U\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x105\xfcI\x04@\x01?w\x04\x00\x11\x00\x04@\x01\x10\x00D\x00\x11\x00\x05\x80\x00_k\x84\x00\x11\x00\x07}c\x10\x00x\x17\x0f\xfd\xd1\x02W\x10\x00D\x00\x11\x00\x04@\x01\x10\x00X\x7f\x00\x01\x816\xb0\xee\xb2"
+        with self.assertRaisesRegex(qge.QGCParseError, EXPECTED_ERROR):
+            QGCReader.parse(badck, validate=VALCKSUM)
+
+    def testbadType(self):  # incorrect type (integer not binary)
+        EXPECTED_ERROR = (
+            "Incorrect type for attribute 'prn' in GET message class RAW-PPPB2B"
+        )
+        with self.assertRaisesRegex(qge.QGCTypeError, EXPECTED_ERROR):
+            QGCMessage(
+                b"\x0a",
+                b"\xb2",
+                msgmode=GET,
+                parsebitfield=1,
+                msgver=1,
+                prn="60",
+                pppstatus=1,
+                msgtype=1,
+                msgdata=b"\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0",
+            )
 
 
 if __name__ == "__main__":

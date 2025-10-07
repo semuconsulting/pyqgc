@@ -75,4 +75,16 @@ QGC_PAYLOADS_GET = {
         "reserved3": U15,
         "msgdata": PAGE53,  # length = page*53
     },
+    # ********************************************************************
+    # QGC nominal payload definition, used as fallback where no documented
+    # payload definition is available.
+    # ********************************************************************
+    "QGC-NOMINAL": {
+        "group": (
+            "None",
+            {
+                "data": X1,
+            },
+        )
+    },
 }

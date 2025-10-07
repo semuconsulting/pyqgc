@@ -3,6 +3,7 @@ pyqgc
 
 [Current Status](#currentstatus) |
 [Installation](#installation) |
+[Message Categories](#msgcat) |
 [Reading](#reading) |
 [Parsing](#parsing) |
 [Generating](#generating) |
@@ -12,7 +13,7 @@ pyqgc
 [Troubleshooting](#troubleshoot) |
 [Author & License](#author)
 
-`pyqgc` is an original Python 3 parser for the QGC &copy; protocol. QGC is a proprietary binary protocol implemented on Quectel &trade; GNSS receiver modules.
+`pyqgc` is an original Python 3 parser for the QGC &copy; protocol. QGC is a proprietary binary protocol implemented on Quectel &trade; GNSS receiver modules. `pyqgc` can also parse NMEA 0183 &copy; and RTCM3 &copy; protocols via the underlying [`pynmeagps`](https://github.com/semuconsulting/pynmeagps) and [`pyrtcm`](https://github.com/semuconsulting/pyrtcm) packages from the same author - hence it covers all the protocols that Quectel QGC GNSS receivers are capable of outputting.
 
 The `pyqgc` homepage is located at [https://github.com/semuconsulting/pyqgc](https://github.com/semuconsulting/pyqgc).
 
@@ -70,6 +71,20 @@ For [Conda](https://docs.conda.io/en/latest/) users, `pyqgc` is also available f
 ```shell
 conda install -c conda-forge pyqgc
 ```
+---
+## <a name="msgcat">QGC Message Categories - GET, SET, POLL</a>
+
+`pyqgc` divides QGC messages into three categories, signified by the `mode` or `msgmode` parameter.
+
+| mode        | description                              | defined in         |
+|-------------|------------------------------------------|--------------------|
+| GET (0x00)  | output *from* the receiver (the default) | `qgctypes_get.py`  |
+| SET (0x01)  | command input *to* the receiver          | `qgctypes_set.py`  |
+| POLL (0x02) | query input *to* the receiver            | `qgctypes_poll.py` |
+
+If you're simply streaming and/or parsing the *output* of a QGC receiver, the mode is implicitly GET. If you want to create
+or parse an *input* (command or query) message, you must set the mode parameter to SET or POLL. If the parser mode is set to
+0x03 (SETPOLL), `pyqgc` will automatically determine the applicable input mode (SET or POLL) based on the message payload.
 
 ---
 ## <a name="reading">Reading (Streaming)</a>
@@ -86,16 +101,18 @@ Individual QGC messages can then be read using the `QGCReader.read()` function, 
 
 The constructor accepts the following optional keyword arguments:
 
+* `protfilter`: `NMEA_PROTOCOL` (1), `QGC_PROTOCOL` (2), `RTCM3_PROTOCOL` (4). Can be OR'd; default is `NMEA_PROTOCOL | QGC_PROTOCOL | RTCM3_PROTOCOL` (7)
 * `quitonerror`: `ERR_IGNORE` (0) = ignore errors, `ERR_LOG` (1) = log errors and continue (default), `ERR_RAISE` (2) = (re)raise errors and terminate
 * `validate`: `VALCKSUM` (0x01) = validate checksum (default), `VALNONE` (0x00) = ignore invalid checksum or length
 * `parsebitfield`: 1 = parse bitfields ('X' type properties) as individual bit flags, where defined (default), 0 = leave bitfields as byte sequences
+* `msgmode`: `GET` (0) (default), `SET` (1), `POLL` (2), `SETPOLL` (3) = automatically determine SET or POLL input mode
 
-Example -  Serial input:
+Example -  Serial input. This example will output both QGC and NMEA messages but not RTCM3:
 ```python
 from serial import Serial
-from pyqgc import QGCReader, VALCKSUM, ERR_LOG
+from pyqgc import QGCReader, VALCKSUM, ERR_LOG, NMEA_PROTOCOL, QGC_PROTOCOL
 with Serial('/dev/ttyACM0', 115200, timeout=3) as stream:
-  qgr = QGCReader(stream, quitonerror=ERR_LOG, validate=VALCKSUM, parsebitfield=1)
+  qgr = QGCReader(stream, protfilter=QGC_PROTOCOL | NMEA_PROTOCOL, quitonerror=ERR_LOG, validate=VALCKSUM, parsebitfield=1)
   raw_data, parsed_data = qgr.read()
   if parsed_data is not None:
     print(parsed_data)
@@ -104,11 +121,11 @@ with Serial('/dev/ttyACM0', 115200, timeout=3) as stream:
 <QGC(RAW-PPPB2B, msgver=1, reserved1=0, prn=60, pppstatus=0, msgtype=0, reserved2=0, msgdata=b'\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0')>
 ```
 
-Example - File input (using iterator):
+Example - File input (using iterator). This will only output QGC data:
 ```python
-from pyqgc import QGCReader
+from pyqgc import QGCReader, QGC_PROTOCOL
 with open('QGCdata.bin', 'rb') as stream:
-  qgr = QGCReader(stream)
+  qgr = QGCReader(stream, protfilter=QGC_PROTOCOL)
   for raw_data, parsed_data in qg:
     print(parsed_data)
 ```
@@ -117,13 +134,13 @@ with open('QGCdata.bin', 'rb') as stream:
             
 ```
 
-Example - Socket input (using iterator):
+Example - Socket input (using iterator). This will output QGC, NMEA and RTCM3 data:
 ```python
 import socket
-from pyqgc import QGCReader
+from pyqgc import QGCReader, NMEA_PROTOCOL, QGC_PROTOCOL, RTCM3_PROTOCOL
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as stream:
   stream.connect(("localhost", 50007))
-  qgr = QGCReader(stream)
+  qgr = QGCReader(stream, protfilter=NMEA_PROTOCOL | QGC_PROTOCOL | RTCM3_PROTOCOL)
   for raw_data, parsed_data in qgr:
     print(parsed_data)
 ```
@@ -189,20 +206,25 @@ The message payload can be defined via keyword arguments in one of three ways:
 2. One or more keyword arguments corresponding to individual message attributes. Any attributes not explicitly provided as keyword arguments will be set to a nominal value according to their type.
 3. If no keyword arguments are passed, the payload is assumed to be null.
 
-Example - to generate a RAW-PPPB2B command (*msggrp 0x0a, msgid 0xb2*) from raw binary data:
+Example - to generate a RAW-PPPB2B command (*msggrp 0x0a, msgid 0xb2*) from individual keyword arguments:
 
 ```python
 from pyqgc import QGCMessage
 msg = QGCMessage(
     b"\x0a",
     b"\xb2",
-    parsebitfield=True,
+    parsebitfield=1,
+    msgver=1,
+    prn=60,
+    pppstatus=0,
+    msgtype=0,
     msgdata=b"\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0",
 )
 print(msg)
 ```
 ```
-<QGC(RAW-PPPB2B, msgver=0, reserved1=0, prn=0, pppstatus=0, msgtype=0, reserved2=0, msgdata=b'\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0')>
+<QGC(RAW-PPPB2B, msgver=1, reserved1=0, prn=60, pppstatus=0, msgtype=0, reserved2=0, msgdata=b'\\x10\\x35\\xfc\\x49\\x04\\x40\\x01\\x3f\\x77\\x04\\x00\\x11\\x00\\x04\\x40\\x01\\x10\\x00\\x44\\x00\\x11\\x00\\x05\\x80\\x00\\x5f\\x6b\\x84\\x00\\x11\\x00\\x07\\x7d\\x63\\x10\\x00\\x78\\x17\\x0f\\xfd\\xd1\\x02\\x57\\x10\\x00\\x44\\x00\\x11\\x00\\x04\\x40\\x01\\x10\\x00\\x58\\x7f\\x00\\x01\\x81\\x36\\xb0')>
+        
 ```
 
 ---

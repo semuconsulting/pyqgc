@@ -24,13 +24,18 @@ from pyqgc.qgchelpers import (
     val2bytes,
 )
 from pyqgc.qgctypes_core import (
+    GET,
     PAGE53,
+    POLL,
     QGC_HDR,
     QGC_MSGIDS,
     SCALROUND,
+    SET,
     U2,
 )
 from pyqgc.qgctypes_get import QGC_PAYLOADS_GET
+from pyqgc.qgctypes_poll import QGC_PAYLOADS_POLL
+from pyqgc.qgctypes_set import QGC_PAYLOADS_SET
 
 
 class QGCMessage:
@@ -40,6 +45,7 @@ class QGCMessage:
         self,
         msggrp: bytes,
         msgid: bytes,
+        msgmode: int = GET,
         parsebitfield: bool = True,
         **kwargs,
     ):
@@ -55,6 +61,7 @@ class QGCMessage:
 
         :param object msggrp: message group
         :param object msgID: message ID
+        :param int msgmode: message mode (0=GET, 1=SET, 2=POLL)
         :param bool parsebitfield: parse bitfields ('X' type attributes) Y/N
         :param kwargs: optional payload keyword arguments
         :raises: QGCMessageError
@@ -62,12 +69,16 @@ class QGCMessage:
 
         # object is mutable during initialisation only
         super().__setattr__("_immutable", False)
+        self._mode = msgmode
         self._payload = b""
         self._length = b""
         self._checksum = b""
         self._msggrp = msggrp
         self._msgid = msgid
         self._parsebf = parsebitfield  # parsing bitfields Y/N?
+
+        if msgmode not in (GET, SET, POLL):
+            raise QGCMessageError(f"Invalid msgmode {msgmode} - must be 0, 1 or 2")
 
         self._do_attributes(**kwargs)
 
@@ -107,14 +118,14 @@ class QGCMessage:
             raise QGCTypeError(
                 (
                     f"Incorrect type for attribute '{anam}' "
-                    f"in message class {self.identity}"
+                    f"in {['GET', 'SET', 'POLL'][self._mode]} message class {self.identity}"
                 )
             ) from err
         except (OverflowError,) as err:
             raise QGCTypeError(
                 (
                     f"Overflow error for attribute '{anam}' "
-                    f"in message class {self.identity}"
+                    f"in {['GET', 'SET', 'POLL'][self._mode]} message class {self.identity}"
                 )
             ) from err
 
@@ -347,11 +358,9 @@ class QGCMessage:
             self._msggrp + self._msgid + self._length + payload
         )
 
-    def _get_dict(self, **kwargs) -> dict:  # pylint: disable=unused-argument
+    def _get_dict(self, **kwargs) -> dict:
         """
         Get payload dictionary corresponding to message mode (GET/SET/POLL)
-        Certain message types need special handling as alternate payload
-        variants exist for the same msggrp/msgid/mode.
 
         :param kwargs: optional payload key/value pairs
         :return: dictionary representing payload definition
@@ -360,10 +369,22 @@ class QGCMessage:
         """
 
         try:
-            return QGC_PAYLOADS_GET[self.identity]
+            if self._mode == POLL:
+                pdict = QGC_PAYLOADS_POLL[self.identity]
+            elif self._mode == SET:
+                pdict = QGC_PAYLOADS_SET[self.identity]
+            else:
+                # Unknown GET message, parsed to nominal definition
+                if self.identity[-7:] == "NOMINAL":
+                    pdict = {}
+                else:
+                    pdict = QGC_PAYLOADS_GET[self.identity]
+            return pdict
         except KeyError as err:
+            mode = ["GET", "SET", "POLL"][self._mode]
             raise QGCMessageError(
-                f"Unknown message type {escapeall(self._msggrp + self._msgid)}"
+                f"Unknown message type {escapeall(self._msggrp + self._msgid)}, mode {mode}. "
+                "Check 'msgmode' setting is appropriate for data stream"
             ) from err
 
     def _calc_num_repeats(
@@ -434,8 +455,8 @@ class QGCMessage:
         """
 
         if self._payload is None:
-            return f"QGCMessage({self._msggrp}, {self._msgid}"
-        return f"QGCMessage({self._msggrp}, {self._msgid}, payload={self._payload})"
+            return f"QGCMessage({self._msggrp}, {self._msgid}, {self._mode}"
+        return f"QGCMessage({self._msggrp}, {self._msgid}, {self._mode}, payload={self._payload})"
 
     def __setattr__(self, name, value):
         """
@@ -481,7 +502,7 @@ class QGCMessage:
         to a nominal payload definition QGC-NOMINAL and
         the term 'NOMINAL' is appended to the identity.
 
-        :return: message identity e.g. 'CFG-MSG'
+        :return: message identity e.g. 'RAW-HASE6'
         :rtype: str
 
         """
@@ -489,7 +510,12 @@ class QGCMessage:
         try:
             umsg_name = QGC_MSGIDS[self._msggrp + self._msgid]
         except KeyError:
-            umsg_name = "UNKNOWN"
+            # unrecognised Quectel message, parsed to QGC-NOMINAL definition
+            cls = "UNKNOWN"
+            umsg_name = (
+                f"{cls}-{int.from_bytes(self._msggrp, 'little'):02x}"
+                + f"{int.from_bytes(self._msgid, 'little'):02x}-NOMINAL"
+            )
         return umsg_name
 
     @property
@@ -538,3 +564,15 @@ class QGCMessage:
         """
 
         return self._payload
+
+    @property
+    def msgmode(self) -> int:
+        """
+        Message mode getter.
+
+        :return: msgmode as integer
+        :rtype: int
+
+        """
+
+        return self._mode

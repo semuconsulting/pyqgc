@@ -10,10 +10,24 @@ Information sourced from public domain Quectel Interface Specifications © 2025,
 
 QGC_HDR = b"\x51\x47"
 """QGC message header"""
+GET = 0
+"""GET (receive, response) message types"""
+SET = 1
+"""SET (command) message types"""
+POLL = 2
+"""POLL (query) message types"""
+SETPOLL = 3
+"""SETPOLL (SET or POLL) message types"""
 VALNONE = 0
 """Do not validate checksum"""
 VALCKSUM = 1
 """Validate checksum"""
+NMEA_PROTOCOL = 1
+"""NMEA Protocol"""
+QGC_PROTOCOL = 2
+"""QGC Protocol"""
+RTCM3_PROTOCOL = 4
+"""RTCM3 Protocol"""
 ERR_RAISE = 2
 """Raise error and quit"""
 ERR_LOG = 1

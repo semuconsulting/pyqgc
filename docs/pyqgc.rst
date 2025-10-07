@@ -52,6 +52,22 @@ pyqgc.qgctypes\_get module
    :undoc-members:
    :show-inheritance:
 
+pyqgc.qgctypes\_poll module
+---------------------------
+
+.. automodule:: pyqgc.qgctypes_poll
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyqgc.qgctypes\_set module
+--------------------------
+
+.. automodule:: pyqgc.qgctypes_set
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 
