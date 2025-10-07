@@ -10,10 +10,9 @@ Created on 6 Oct 2025
 """
 
 import struct
-from datetime import datetime, timedelta
 
 import pyqgc.exceptions as qge
-from pyqgc.qgctypes_core import ATTTYPE
+from pyqgc.qgctypes_core import ATTTYPE, SET
 
 
 def att2idx(att: str) -> object:
@@ -157,6 +156,18 @@ def get_bits(bitfield: bytes, bitmask: int) -> int:
         bitmask = bitmask >> 1
         i += 1
     return val >> i & bitmask
+
+
+def getinputmode(data: bytes) -> int:
+    """
+    Return input message mode (SET or POLL).
+
+    :param bytes data: raw QGC input message
+    :return: message mode (1 = SET, 2 = POLL)
+    :rtype: int
+    """
+
+    return SET
 
 
 def hextable(raw: bytes, cols: int = 8) -> str:
