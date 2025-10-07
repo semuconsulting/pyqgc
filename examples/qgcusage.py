@@ -10,7 +10,17 @@ Created on 6 Oct 2025
 :license: BSD 3-Clause
 """
 
-from pyqgc import ERR_LOG, VALCKSUM, QGCMessage, QGCReader
+from pyqgc import (
+    ERR_LOG,
+    GET,
+    NMEA_PROTOCOL,
+    QGC_PROTOCOL,
+    RTCM3_PROTOCOL,
+    VALCKSUM,
+    QGCMessage,
+    QGCReader,
+)
+from serial import Serial
 
 # create RAW-PPPB2B message from raw msgdata parameters
 msg1 = QGCMessage(
@@ -32,8 +42,41 @@ msg2 = QGCReader.parse(msg1.serialize(), validate=VALCKSUM, parsebitfield=1)
 print(msg2)
 print(str(msg1) == str(msg2))
 
-# parse message from binary file
+# parse messages from binary file
 with open("pygpsdata_lg580p_qgc.log", "rb") as stream:
-    qgr = QGCReader(stream, quitonerror=ERR_LOG, validate=VALCKSUM, parsebitfield=1)
+    qgr = QGCReader(
+        stream,
+        msgmode=GET,  # default, normally omitted
+        protfilter=NMEA_PROTOCOL | QGC_PROTOCOL | RTCM3_PROTOCOL,
+        quitonerror=ERR_LOG,
+        validate=VALCKSUM,
+        parsebitfield=1,
+    )
+    msgs = {}
+    i = 0
     for raw, parsed in qgr:
         print(parsed)
+        i += 1
+        msgs[parsed.identity] = msgs.get(parsed.identity, 0) + 1
+    print(f"End of file, {i} messages parsed\n{msgs}")
+
+# parse messages from serial port
+# PORT = "/dev/tty.usbmodem59320023651"
+# BAUD = 460800
+# try:
+#     with Serial(PORT, BAUD, timeout=3) as stream:
+#         qgr = QGCReader(
+#             stream,
+#             msgmode=GET,
+#             protfilter=NMEA_PROTOCOL | QGC_PROTOCOL | RTCM3_PROTOCOL,
+#             validate=VALCKSUM,
+#             quitonerror=ERR_LOG,
+#         )
+#         msgs = {}
+#         i = 0
+#         for raw, parsed in qgr:
+#             print(parsed)
+#             i += 1
+#             msgs[parsed.identity] = msgs.get(parsed.identity, 0) + 1
+# except KeyboardInterrupt:
+#     print(f"Terminated by user, {i} messages parsed\n{msgs}")
