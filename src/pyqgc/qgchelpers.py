@@ -12,7 +12,10 @@ Created on 6 Oct 2025
 import struct
 
 import pyqgc.exceptions as qge
-from pyqgc.qgctypes_core import ATTTYPE, SET
+from pyqgc.qgctypes_core import ATTTYPE, GET, POLL, QGC_MSGIDS, SET, U2
+from pyqgc.qgctypes_get import QGC_PAYLOADS_GET
+from pyqgc.qgctypes_poll import QGC_PAYLOADS_POLL
+from pyqgc.qgctypes_set import QGC_PAYLOADS_SET
 
 
 def att2idx(att: str) -> object:
@@ -62,9 +65,10 @@ def attsiz(att: str) -> int:
 
     """
 
-    if att == "CH":  # variable length
+    try:
+        return int(att[1:4])
+    except ValueError:
         return -1
-    return int(att[1:4])
 
 
 def atttyp(att: str) -> str:
@@ -92,8 +96,10 @@ def bytes2val(valb: bytes, att: str) -> object:
 
     """
 
-    if atttyp(att) == "X":
+    if atttyp(att) == "X":  # bytes
         val = valb
+    elif atttyp(att) == "C":  # string
+        val = valb.decode("utf-8", errors="backslashreplace")
     elif atttyp(att) in ("S", "U"):  # integer
         val = int.from_bytes(valb, byteorder="little", signed=atttyp(att) == "S")
     elif atttyp(att) == "R":  # floating point
@@ -158,7 +164,7 @@ def get_bits(bitfield: bytes, bitmask: int) -> int:
     return val >> i & bitmask
 
 
-def getinputmode(data: bytes) -> int:
+def getinputmode(msggrp: bytes, msgid: bytes, length: bytes) -> int:
     """
     Return input message mode (SET or POLL).
 
@@ -167,7 +173,40 @@ def getinputmode(data: bytes) -> int:
     :rtype: int
     """
 
+    try:
+        mid = QGC_MSGIDS[msggrp + msgid]
+        leni = bytes2val(length, U2)
+        if leni == getpaylen(mid, SET):
+            return SET
+        if leni == getpaylen(mid, POLL):
+            return POLL
+    except (KeyError, ValueError):
+        pass
     return SET
+
+
+def getpaylen(identity: str, mode: int = GET) -> int:
+    """
+    Get length of payload dictionary in bytes.
+
+    :param str identity: identity of message
+    :param int mode: message mode (GET/SET/POLL)
+    :return: length in bytes or -1 if variable length
+    :rtype: int
+    """
+
+    try:
+        dic = [QGC_PAYLOADS_GET, QGC_PAYLOADS_SET, QGC_PAYLOADS_POLL][mode]
+        leni = 0
+        for _, typ in dic[identity].items():
+            siz = attsiz(typ)
+            if siz > 0:
+                leni += siz
+            else:
+                return -1
+        return leni
+    except (IndexError, ValueError):
+        return -1
 
 
 def hextable(raw: bytes, cols: int = 8) -> str:
@@ -243,6 +282,8 @@ def nomval(att: str) -> object:
 
     if atttyp(att) == "X":
         val = b"\x00" * attsiz(att)
+    elif atttyp(att) == "C":
+        val = " " * attsiz(att)
     elif atttyp(att) == "R":
         val = 0.0
     elif atttyp(att) in ("S", "U"):
@@ -275,36 +316,10 @@ def val2bytes(val, att: str) -> bytes:
     valb = val
     if atttyp(att) == "X":  # byte
         valb = val
+    elif atttyp(att) == "C":  # string
+        val = valb.encode("utf-8", errors="backslashreplace")
     elif atttyp(att) in ("S", "U"):  # integer
         valb = val.to_bytes(attsiz(att), byteorder="little", signed=atttyp(att) == "S")
     elif atttyp(att) == "R":  # floating point
         valb = struct.pack("<f" if attsiz(att) == 4 else "<d", float(val))
     return valb
-
-
-def val2signmag(val: int, att: str) -> int:
-    """
-    Convert signed integer to sign magnitude binary representation.
-
-    High-order bit represents sign (0 +ve, 1 -ve).
-
-    :param int val: value
-    :param str att: attribute type e.g. "U024"
-    :return: sign magnitude representation of value
-    :rtype: int
-    """
-
-    return (abs(val) & pow(2, attsiz(att)) - 1) | ((1 if val < 0 else 0) << attsiz(att))
-
-
-def val2twoscomp(val: int, att: str) -> int:
-    """
-    Convert signed integer to two's complement binary representation.
-
-    :param int val: value
-    :param str att: attribute type e.g. "U024"
-    :return: two's complement representation of value
-    :rtype: int
-    """
-
-    return val & pow(2, attsiz(att)) - 1

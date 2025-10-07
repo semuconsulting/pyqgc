@@ -421,12 +421,14 @@ class QGCReader:
                 )
         # if input message (SET or POLL), determine mode automatically
         if msgmode == SETPOLL:
-            msgmode = getinputmode(message)  # returns SET or POLL
+            msgmode = getinputmode(msggrp, msgid, lenb)  # returns SET or POLL
         if payload is None:
             return QGCMessage(msggrp, msgid, msgmode)
         return QGCMessage(
             msggrp,
             msgid,
+            ckm,
+            lenb,
             msgmode,
             payload=payload,
             parsebitfield=parsebitfield,

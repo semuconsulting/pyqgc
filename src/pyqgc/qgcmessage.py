@@ -24,6 +24,7 @@ from pyqgc.qgchelpers import (
     val2bytes,
 )
 from pyqgc.qgctypes_core import (
+    CHSTR,
     GET,
     PAGE53,
     POLL,
@@ -31,7 +32,9 @@ from pyqgc.qgctypes_core import (
     QGC_MSGIDS,
     SCALROUND,
     SET,
+    SNSTR,
     U2,
+    VERSTR,
 )
 from pyqgc.qgctypes_get import QGC_PAYLOADS_GET
 from pyqgc.qgctypes_poll import QGC_PAYLOADS_POLL
@@ -45,6 +48,8 @@ class QGCMessage:
         self,
         msggrp: bytes,
         msgid: bytes,
+        checksum: bytes = None,
+        length: bytes = None,
         msgmode: int = GET,
         parsebitfield: bool = True,
         **kwargs,
@@ -61,6 +66,8 @@ class QGCMessage:
 
         :param object msggrp: message group
         :param object msgID: message ID
+        :param bytes checksum: checksum (will be derived if None)
+        :param bytes length: payload length (will be derived if None)
         :param int msgmode: message mode (0=GET, 1=SET, 2=POLL)
         :param bool parsebitfield: parse bitfields ('X' type attributes) Y/N
         :param kwargs: optional payload keyword arguments
@@ -71,8 +78,12 @@ class QGCMessage:
         super().__setattr__("_immutable", False)
         self._mode = msgmode
         self._payload = b""
-        self._length = b""
-        self._checksum = b""
+        self._length = length  # bytes
+        if length is None:
+            self._lengthint = 0
+        else:
+            self._lengthint = bytes2val(length, U2)  # integer
+        self._checksum = checksum  # bytes
         self._msggrp = msggrp
         self._msgid = msgid
         self._parsebf = parsebitfield  # parsing bitfields Y/N?
@@ -237,10 +248,16 @@ class QGCMessage:
             if i > 0:
                 anami += f"_{i:02d}"
 
-        # determine attribute size (bytes)
-        if adef in (PAGE53,):  # length dependent on value of preceding attribute
+        # determine attribute size (bytes) - some attributes have
+        # variable length, depending on
+        # - multiple of value of preceding attribute
+        # - payload length - offset
+        if adef in (PAGE53, VERSTR, SNSTR):
             an, at, ml = adef.split("_", 2)
-            vl = getattr(self, an) * int(ml)
+            if adef in (PAGE53,):
+                vl = getattr(self, an) * int(ml)
+            else:
+                vl = bytes2val(self._length, U2) - int(ml)
             adef = f"{at}{vl:03d}"
         asiz = attsiz(adef)
 
@@ -350,15 +367,20 @@ class QGCMessage:
 
     def _do_len_checksum(self):
         """
-        Calculate and format payload length and checksum as bytes."""
+        Calculate and format payload length and checksum as bytes,
+        if not passed as input arguments.
+        """
 
         payload = b"" if self._payload is None else self._payload
-        self._length = val2bytes(len(payload), U2)
-        self._checksum = calc_checksum(
-            self._msggrp + self._msgid + self._length + payload
-        )
+        if self._length is None:
+            self._lengthint = len(payload)
+            self._length = val2bytes(len(payload), U2)
+        if self._checksum is None:
+            self._checksum = calc_checksum(
+                self._msggrp + self._msgid + self._length + payload
+            )
 
-    def _get_dict(self, **kwargs) -> dict:
+    def _get_dict(self, **kwargs) -> dict:  # pylint: disable=unused-argument
         """
         Get payload dictionary corresponding to message mode (GET/SET/POLL)
 
@@ -371,14 +393,25 @@ class QGCMessage:
         try:
             if self._mode == POLL:
                 pdict = QGC_PAYLOADS_POLL[self.identity]
+                # alternate definitions
+                if self.identity == "CFG-MSG" and self._lengthint == 5:
+                    pdict = QGC_PAYLOADS_SET[f"{self.identity}-INTF"]
             elif self._mode == SET:
                 pdict = QGC_PAYLOADS_SET[self.identity]
+                # alternate definitions
+                if self.identity == "CFG-MSG" and self._lengthint == 7:
+                    pdict = QGC_PAYLOADS_SET[f"{self.identity}-INTF"]
+                elif self.identity == "CFG-UART" and self._lengthint == 2:
+                    pdict = QGC_PAYLOADS_SET[f"{self.identity}-DIS"]
             else:
                 # Unknown GET message, parsed to nominal definition
                 if self.identity[-7:] == "NOMINAL":
                     pdict = {}
                 else:
                     pdict = QGC_PAYLOADS_GET[self.identity]
+                    # alternate definitions
+                    if self.identity == "CFG-MSG" and self._lengthint == 7:
+                        pdict = QGC_PAYLOADS_GET[f"{self.identity}-INTF"]
             return pdict
         except KeyError as err:
             mode = ["GET", "SET", "POLL"][self._mode]
@@ -433,8 +466,9 @@ class QGCMessage:
         for i, att in enumerate(self.__dict__):
             if att[0] != "_":  # only show public attributes
                 val = self.__dict__[att]
-                # escape all byte chars
-                if isinstance(val, bytes):
+                # escape all byte chars unless they're
+                # intended to be character strings
+                if isinstance(val, bytes) and att not in CHSTR:
                     val = escapeall(val)
                 stg += att + "=" + str(val)
                 if i < len(self.__dict__) - 1:

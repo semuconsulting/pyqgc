@@ -30,7 +30,7 @@ This is an independent project and we have no affiliation whatsoever with Quecte
 ![Contributors](https://img.shields.io/github/contributors/semuconsulting/pyqgc.svg)
 ![Open Issues](https://img.shields.io/github/issues-raw/semuconsulting/pyqgc)
 
-The current alpha release implements 3 QGC RAW message types defined for the LG580P receiver, but is readily [extensible](#extensibility). Refer to `QGC_MSGIDS` in [qgctypes_core.py](https://github.com/semuconsulting/pyqgc/blob/main/src/pyqgc/qgctypes_core.py#L64) for the complete dictionary of messages currently supported. QGC protocol information sourced from public domain Quectel [LG580P GNSS Protocol Specification](https://www.quectel.com/download/quectel_lg290p03lgx80p03_gnss_protocol_specification_v1-1/) © 2025, Quectel.
+The current alpha release implements QGC message types for the LG580P receiver and LU600 IMU module, but is readily [extensible](#extensibility). Refer to `QGC_MSGIDS` in [qgctypes_core.py](https://github.com/semuconsulting/pyqgc/blob/main/src/pyqgc/qgctypes_core.py#L81) for the complete dictionary of messages currently supported. QGC protocol information sourced from public domain Quectel GNSS Protocol Specification © 2021-2025, Quectel.
 
 Sphinx API Documentation in HTML format is available at [https://www.semuconsulting.com/pyqgc/](https://www.semuconsulting.com/pyqgc/).
 
@@ -223,7 +223,7 @@ msg = QGCMessage(
 print(msg)
 ```
 ```
-<QGC(RAW-PPPB2B, msgver=1, reserved1=0, prn=60, pppstatus=0, msgtype=0, reserved2=0, msgdata=b'\\x10\\x35\\xfc\\x49\\x04\\x40\\x01\\x3f\\x77\\x04\\x00\\x11\\x00\\x04\\x40\\x01\\x10\\x00\\x44\\x00\\x11\\x00\\x05\\x80\\x00\\x5f\\x6b\\x84\\x00\\x11\\x00\\x07\\x7d\\x63\\x10\\x00\\x78\\x17\\x0f\\xfd\\xd1\\x02\\x57\\x10\\x00\\x44\\x00\\x11\\x00\\x04\\x40\\x01\\x10\\x00\\x58\\x7f\\x00\\x01\\x81\\x36\\xb0')>
+<QGC(RAW-PPPB2B, msgver=1, reserved1=0, prn=60, pppstatus=0, msgtype=0, reserved2=0, msgdata=b'\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0')>
         
 ```
 
@@ -245,6 +245,7 @@ serialOut.write(output)
 ```
 ```
 <QGC(RAW-PPPB2B, msgver=0, reserved1=0, prn=0, pppstatus=0, msgtype=0, reserved2=0, msgdata=b'\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0')>
+
 b'QG\n\xb2U\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x105\xfcI\x04@\x01?w\x04\x00\x11\x00\x04@\x01\x10\x00D\x00\x11\x00\x05\x80\x00_k\x84\x00\x11\x00\x07}c\x10\x00x\x17\x0f\xfd\xd1\x02W\x10\x00D\x00\x11\x00\x04@\x01\x10\x00X\x7f\x00\x01\x816\xb0\xee\xb1'
 ```
 
