@@ -3,6 +3,8 @@ qgcusage.py
 
 Illustrate basic usage of the pyqgc.QGCMessage and pyqgc.QGCReader classes.
 
+Run from /examples folder
+
 Created on 6 Oct 2025
 
 :author: semuadmin (Steve Smith)
@@ -10,19 +12,49 @@ Created on 6 Oct 2025
 :license: BSD 3-Clause
 """
 
+from serial import Serial
+
 from pyqgc import (
     ERR_LOG,
     GET,
     NMEA_PROTOCOL,
+    POLL,
     QGC_PROTOCOL,
     RTCM3_PROTOCOL,
+    SET,
     VALCKSUM,
     QGCMessage,
     QGCReader,
 )
-from serial import Serial
 
-# create RAW-PPPB2B message from raw msgdata parameters
+# create CFG-UART SET (command) message from keyword arguments
+# *** remember to set msgmode=SET ***
+msg = QGCMessage(
+    b"\x02",
+    b"\x01",
+    msgmode=SET,
+    intfid=1,
+    intfstatus=1,
+    baudrate=921600,
+    databit=8,
+    parity=0,
+    stopbit=1,
+)
+print(msg)
+# send msg.serialize() to receiver
+
+# create INF-VER POLL (query) message from keyword arguments
+# *** remember to set msgmode=POLL ***
+msg = QGCMessage(
+    b"\x06",
+    b"\x01",
+    msgmode=POLL,
+)
+print(msg)
+# send msg.serialize() to receiver
+
+# create RAW-PPPB2B GET (output) message from keyword arguments
+# *** msgmode=GET is the default, so can be omitted here ***
 msg1 = QGCMessage(
     b"\x0a",
     b"\xb2",
