@@ -79,9 +79,6 @@ ATTTYPE = {
 }
 """Permissible attribute types"""
 
-CHSTR = ("verstr", "snstr", "builddate", "buildtime")
-"""Attributes to be rendered as character strings"""
-
 # ***************************************************************************
 # THESE ARE THE QGC PROTOCOL CORE MESSAGE IDENTITIES
 # Payloads for each of these identities are defined in the QGCtypes_* modules

@@ -130,7 +130,7 @@ class QGCReader:
 
         """
 
-        (raw_data, parsed_data) = self.read()
+        raw_data, parsed_data = self.read()
         if raw_data is None and parsed_data is None:
             raise StopIteration
         return (raw_data, parsed_data)
@@ -161,7 +161,7 @@ class QGCReader:
                 bytehdr = byte1 + byte2
                 # if it's a UBX message (b'\xb5\x62')
                 if bytehdr == QGC_HDR:
-                    (raw_data, parsed_data) = self._parse_qgc(bytehdr)
+                    raw_data, parsed_data = self._parse_qgc(bytehdr)
                     # if protocol filter passes QGC, return message,
                     # otherwise discard and continue
                     if self._protfilter & QGC_PROTOCOL:
@@ -170,7 +170,7 @@ class QGCReader:
                         continue
                 # if it's an NMEA message (b'\x24\x..)
                 elif bytehdr in NMEA_HDR:
-                    (raw_data, parsed_data) = self._parse_nmea(bytehdr)
+                    raw_data, parsed_data = self._parse_nmea(bytehdr)
                     # if protocol filter passes NMEA, return message,
                     # otherwise discard and continue
                     if self._protfilter & NMEA_PROTOCOL:
@@ -180,7 +180,7 @@ class QGCReader:
                 # if it's a RTCM3 message
                 # (byte1 = 0xd3; byte2 = 0b000000**)
                 elif byte1 == b"\xd3" and (byte2[0] & ~0x03) == 0:
-                    (raw_data, parsed_data) = self._parse_rtcm3(bytehdr)
+                    raw_data, parsed_data = self._parse_rtcm3(bytehdr)
                     # if protocol filter passes RTCM, return message,
                     # otherwise discard and continue
                     if self._protfilter & RTCM3_PROTOCOL:

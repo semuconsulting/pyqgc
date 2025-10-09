@@ -24,7 +24,6 @@ from pyqgc.qgchelpers import (
     val2bytes,
 )
 from pyqgc.qgctypes_core import (
-    CHSTR,
     GET,
     PAGE53,
     POLL,
@@ -115,7 +114,7 @@ class QGCMessage:
                 self._payload = kwargs.get("payload", b"")
                 pdict = self._get_dict(**kwargs)  # get appropriate payload dict
                 for anam in pdict:  # process each attribute in dict
-                    (offset, index) = self._set_attribute(
+                    offset, index = self._set_attribute(
                         anam, pdict, offset, index, **kwargs
                     )
             self._do_len_checksum()
@@ -163,7 +162,7 @@ class QGCMessage:
             numr, _ = adef
             if numr[0] == "X":  # bitfield
                 if self._parsebf:  # if we're parsing bitfields
-                    (offset, index) = self._set_attribute_bitfield(
+                    offset, index = self._set_attribute_bitfield(
                         adef, offset, index, **kwargs
                     )
                 else:  # treat bitfield as a single byte array
@@ -171,9 +170,7 @@ class QGCMessage:
                         anam, numr, offset, index, **kwargs
                     )
             else:  # repeating group of attributes
-                (offset, index) = self._set_attribute_group(
-                    adef, offset, index, **kwargs
-                )
+                offset, index = self._set_attribute_group(adef, offset, index, **kwargs)
         else:  # single attribute
             offset = self._set_attribute_single(anam, adef, offset, index, **kwargs)
 
@@ -313,7 +310,7 @@ class QGCMessage:
 
         # process each flag in bitfield
         for key, keyt in bdict.items():
-            (bitfield, bfoffset) = self._set_attribute_bits(
+            bitfield, bfoffset = self._set_attribute_bits(
                 bitfield, bfoffset, key, keyt, index, **kwargs
             )
 
@@ -468,7 +465,7 @@ class QGCMessage:
                 val = self.__dict__[att]
                 # escape all byte chars unless they're
                 # intended to be character strings
-                if isinstance(val, bytes) and att not in CHSTR:
+                if isinstance(val, bytes):
                     val = escapeall(val)
                 stg += att + "=" + str(val)
                 if i < len(self.__dict__) - 1:
