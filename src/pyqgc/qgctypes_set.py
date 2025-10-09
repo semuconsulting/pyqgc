@@ -34,4 +34,7 @@ QGC_PAYLOADS_SET = {
         "mode": U1,
         "reserved1": U1,
     },
+    "INF-SN": {
+        "snid": U1,
+    },
 }
