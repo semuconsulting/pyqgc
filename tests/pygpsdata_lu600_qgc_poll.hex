@@ -1,0 +1,16 @@
+//Get the UART interface configuration.
+51 47 02 01 01 00 01 05 12
+//Get the CAN interface configuration.
+51 47 02 04 01 00 00 07 1D
+//Get the output rate of PQTMSENMSG message via UART interface.
+51 47 02 10 03 00 F1 0A 03 13 67
+//Get the output rate of CAN-MSG-TIME message via CAN interface.
+51 47 02 10 03 00 CA 01 03 E3 E0
+//Get the CAN-MSG-GYRO message output rate of CAN interface via UART interface (interface currently in use).
+51 47 02 10 05 00 04 00 CA 02 03 EA 2E
+//Get the current IMU filter.
+51 47 02 20 00 00 22 68
+//Queries the firmware version message.
+51 47 06 01 00 00 07 1B
+//Output the module serial number.
+51 47 06 02 01 00 01 0A 2A

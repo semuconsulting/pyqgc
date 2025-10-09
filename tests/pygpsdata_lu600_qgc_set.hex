@@ -1,0 +1,28 @@
+//QGC-CTL-PAR command.
+51 47 03 02 02 00 01 00 08 26
+//Set UART interface baud rate at 921600 bps, 8 data bits, no parity, and 1 stop bit.
+51 47 02 01 0C 00 01 01 00 00 00 10 0E 00 08 00 01 00 38 D4
+//Disable UART.
+51 47 02 01 02 00 01 00 06 1B
+//Set FrameProtocol as Classical CAN, FrameFormat as standard, BaudRate as 500 Kbps and DataBaudRate as 2000 Kbps.
+51 47 02 04 0C 00 00 01 00 00 20 A1 07 00 80 84 1E 00 FD 68
+//Disable CAN.
+51 47 02 04 02 00 00 00 08 28
+//Set the output rate of QGC-SEN-IMU message to 0 Hz via UART interface (disable output).
+51 47 02 10 05 00 10 01 00 00 03 2B 0C
+//Set the output rate of PQTMSENMSG message to 400 Hz via UART interface.
+51 47 02 10 05 00 F1 0A 90 01 03 A6 47
+//Set the output rate of CAN-MSG-GYRO message to 400 Hz via CAN interface.
+51 47 02 10 05 00 CA 02 90 01 03 77 64
+//Set the PQTMSENMSG message output rate of UART interface to 50 Hz via CAN interface (interface currently in use).
+51 47 02 10 07 00 01 01 F1 0A 32 00 03 4B 78
+//Set the CAN-MSG-GYRO message output rate of CAN interface to 10 Hz via UART interface (interface currently in use).
+51 47 02 10 07 00 04 00 CA 02 0A 00 03 F6 2C
+//Set both angular rate and acceleration filtering value as 46 Hz.
+51 47 02 20 04 00 2E 00 2E 00 82 1C
+//Restart the IMU system.
+51 47 03 01 04 00 00 00 01 00 09 39
+//Save configurations.
+51 47 03 02 02 00 01 00 08 26
+//Restore all parameters to the default values.
+51 47 03 02 02 00 02 00 09 28

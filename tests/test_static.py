@@ -15,22 +15,23 @@ import unittest
 
 import pyqgc.qgctypes_core as qgt
 import pyqgc.exceptions as qge
-from pyqgc.qgctypes_core import SET, GET, VALCKSUM
+from pyqgc.qgctypes_core import SET, GET, VALCKSUM, CV, POLL, QGC_MSGIDS
 from pyqgc import QGCReader, QGCMessage
 from pyqgc.qgchelpers import (
     attsiz,
     att2idx,
     att2name,
     bytes2val,
+    nomval,
     calc_checksum,
     escapeall,
     get_bits,
+    getpaylen,
     getinputmode,
     hextable,
     isvalid_checksum,
+    key_from_val,
     val2bytes,
-    val2twoscomp,
-    val2signmag,
 )
 
 
@@ -122,23 +123,50 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(repr(msg), EXPECTED_REPR)
         self.assertEqual(str(eval(repr(msg))), str(msg))
 
+    def testProperties(self):
+        msg = QGCMessage(
+            b"\x0a",
+            b"\xb2",
+            msgmode=GET,
+            parsebitfield=1,
+            msgver=1,
+            prn=60,
+            pppstatus=1,
+            msgtype=1,
+            msgdata=b"\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0",
+        )
+        self.assertEqual(msg.msg_grp, b"\x0a")
+        self.assertEqual(msg.msg_id, b"\xb2")
+        self.assertEqual(msg.length, 85)
+        self.assertEqual(msg.msgmode, GET)
+        self.assertEqual(
+            msg.payload,
+            b"\x01\x00\x00\x00\x00< \x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x105\xfcI\x04@\x01?w\x04\x00\x11\x00\x04@\x01\x10\x00D\x00\x11\x00\x05\x80\x00_k\x84\x00\x11\x00\x07}c\x10\x00x\x17\x0f\xfd\xd1\x02W\x10\x00D\x00\x11\x00\x04@\x01\x10\x00X\x7f\x00\x01\x816\xb0",
+        )
+
     def testVal2Bytes(self):  # test conversion of value to bytes
         INPUTS = [
             (2345, qgt.U2),
             (b"\x44\x55", qgt.X2),
             (23.12345678, qgt.R4),
             (-23.12345678912345, qgt.R8),
+            ("test1234", qgt.C8),
         ]
         EXPECTED_RESULTS = [
             b"\x29\x09",
             b"\x44\x55",
             b"\xd7\xfc\xb8\x41",
             b"\x1f\xc1\x37\xdd\x9a\x1f\x37\xc0",
+            "test1234",
         ]
         for i, inp in enumerate(INPUTS):
             (val, att) = inp
             res = val2bytes(val, att)
             self.assertEqual(res, EXPECTED_RESULTS[i])
+
+    def testVal2BytesInvalid(self):
+        with self.assertRaisesRegex(qge.QGCTypeError, "Unknown attribute type Y002"):
+            res = val2bytes(1234, "Y002")
 
     def testBytes2Val(self):  # test conversion of bytes to value
         INPUTS = [
@@ -146,12 +174,14 @@ class StaticTest(unittest.TestCase):
             (b"\x44\x55", qgt.X2),
             (b"\xd7\xfc\xb8\x41", qgt.R4),
             (b"\x1f\xc1\x37\xdd\x9a\x1f\x37\xc0", qgt.R8),
+            (b"test1234", qgt.C8),
         ]
         EXPECTED_RESULTS = [
             2345,
             b"\x44\x55",
             23.12345678,
             -23.12345678912345,
+            "test1234",
         ]
         for i, inp in enumerate(INPUTS):
             (valb, att) = inp
@@ -162,6 +192,33 @@ class StaticTest(unittest.TestCase):
                 self.assertAlmostEqual(res, EXPECTED_RESULTS[i], 14)
             else:
                 self.assertEqual(res, EXPECTED_RESULTS[i])
+
+    def testBytes2ValInvalid(self):
+        with self.assertRaisesRegex(qge.QGCTypeError, "Unknown attribute type Y002"):
+            res = bytes2val(b"\x12\x34", "Y002")
+
+    def testNomval(self):  # test conversion of value to bytes
+        INPUTS = [
+            qgt.U2,
+            qgt.X2,
+            qgt.R4,
+            qgt.R8,
+            qgt.C8,
+        ]
+        EXPECTED_RESULTS = [
+            0,
+            b"\x00\x00",
+            0.0,
+            0.0,
+            "        ",
+        ]
+        for i, att in enumerate(INPUTS):
+            res = nomval(att)
+            self.assertEqual(res, EXPECTED_RESULTS[i])
+
+    def testNomValInvalid(self):
+        with self.assertRaisesRegex(qge.QGCTypeError, "Unknown attribute type Y002"):
+            res = nomval("Y002")
 
     def testCalcChecksum(self):
         res = calc_checksum(b"\x06\x01\x02\x00\xf0\x05")
@@ -200,11 +257,19 @@ class StaticTest(unittest.TestCase):
         self.assertEqual(res, EXPECTED_RESULT)
 
     def testgetinputmode(self):
-        res = getinputmode(self.qgcmsg.serialize())
+        res = getinputmode(b"\x02", b"\x04", b"\x01\x00")
+        self.assertEqual(res, POLL)
+        res = getinputmode(b"\x02", b"\x04", b"\x0c\x00")
+        self.assertEqual(res, SET)
+        res = getinputmode(b"\x02", b"\x01", b"\x01\x00")
+        self.assertEqual(res, POLL)
+        res = getinputmode(b"\x02", b"\x01", b"\x0c\x00")
+        self.assertEqual(res, SET)
+        res = getinputmode(b"\x99", b"\x99", b"\x0c\x00")
         self.assertEqual(res, SET)
 
     def testattsiz(self):  # test attsiz
-        self.assertEqual(attsiz("CH"), -1)
+        self.assertEqual(attsiz(CV), -1)
         self.assertEqual(attsiz("C032"), 32)
 
     def testatt2idx(self):  # test att2idx
@@ -229,18 +294,6 @@ class StaticTest(unittest.TestCase):
         res = escapeall(val)
         print(res)
         self.assertEqual(res, EXPECTED_RESULT)
-
-    def testval2twoscomp(self):
-        res = val2twoscomp(10, "U24")
-        self.assertEqual(res, 0b0000000000000000000001010)
-        res = val2twoscomp(-10, "U24")
-        self.assertEqual(res, 0b111111111111111111110110)
-
-    def testval2signmag(self):
-        res = val2signmag(10, "U24")
-        self.assertEqual(res, 0b0000000000000000000001010)
-        res = val2signmag(-10, "U24")
-        self.assertEqual(res, 0b1000000000000000000001010)
 
     def testInvMode(self):  # test invalid mode
         EXPECTED_ERROR = "Invalid msgmode 4 - must be 0, 1 or 2"
@@ -275,6 +328,61 @@ class StaticTest(unittest.TestCase):
                 msgtype=1,
                 msgdata=b"\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0",
             )
+
+    def testgetpayloadlen(self):
+        res = getpaylen("CFG-MSG-INTF", SET)
+        self.assertEqual(res, 7)
+        res = getpaylen("CFG-MSG", SET)
+        self.assertEqual(res, 5)
+        res = getpaylen("SEN-IMU", GET)
+        self.assertEqual(res, 37)
+        res = getpaylen("INF-VER", GET)
+        self.assertEqual(res, -1)
+        res = getpaylen("INF-VER", 7)
+        self.assertEqual(res, -1)
+
+    def testkeyfromval(self):
+        res = key_from_val(QGC_MSGIDS, "CFG-UART")
+        self.assertEqual(res, b"\x02\x01")
+
+    def testkeyfromvalinvalid(self):
+        with self.assertRaisesRegex(KeyError, "No key found for value CFG-XXXX"):
+            res = key_from_val(QGC_MSGIDS, "CFG-XXXX")
+
+    def testOverflow(self):
+        with self.assertRaisesRegex(
+            qge.QGCTypeError,
+            "Overflow error for attribute 'prn' in GET message class RAW-PPPB2B",
+        ):
+            msg = QGCMessage(
+                b"\x0a",
+                b"\xb2",
+                msgmode=GET,
+                parsebitfield=1,
+                msgver=1,
+                prn=99999999,
+                pppstatus=1,
+                msgtype=1,
+                msgdata=b"\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0",
+            )
+
+    def testImmutable(self):
+        with self.assertRaisesRegex(
+            qge.QGCMessageError,
+            "Object is immutable. Updates to prn not permitted after initialisation.",
+        ):
+            msg = QGCMessage(
+                b"\x0a",
+                b"\xb2",
+                msgmode=GET,
+                parsebitfield=1,
+                msgver=1,
+                prn=60,
+                pppstatus=1,
+                msgtype=1,
+                msgdata=b"\x10\x35\xfc\x49\x04\x40\x01\x3f\x77\x04\x00\x11\x00\x04\x40\x01\x10\x00\x44\x00\x11\x00\x05\x80\x00\x5f\x6b\x84\x00\x11\x00\x07\x7d\x63\x10\x00\x78\x17\x0f\xfd\xd1\x02\x57\x10\x00\x44\x00\x11\x00\x04\x40\x01\x10\x00\x58\x7f\x00\x01\x81\x36\xb0",
+            )
+            msg.prn = 33
 
 
 if __name__ == "__main__":
