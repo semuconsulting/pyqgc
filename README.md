@@ -86,8 +86,6 @@ If you're simply streaming and/or parsing the *output* of a QGC receiver, the mo
 or parse an *input* (command or query) message, you must set the mode parameter to SET or POLL. If the parser mode is set to
 0x03 (SETPOLL), `pyqgc` will automatically determine the applicable input mode (SET or POLL) based on the message payload.
 
-**NB:** The `msgmode` argument is for future-proofing. Currently no SET or POLL QGC message types are defined, so `msgmode` can be left at the default GET (0x00)
-
 ---
 ## <a name="reading">Reading (Streaming)</a>
 
