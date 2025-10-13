@@ -30,7 +30,7 @@ This is an independent project and we have no affiliation whatsoever with Quecte
 ![Contributors](https://img.shields.io/github/contributors/semuconsulting/pyqgc.svg)
 ![Open Issues](https://img.shields.io/github/issues-raw/semuconsulting/pyqgc)
 
-The current alpha release implements QGC message types for the LG580P receiver and LU600 IMU module, but is readily [extensible](#extensibility). Refer to `QGC_MSGIDS` in [qgctypes_core.py](https://github.com/semuconsulting/pyqgc/blob/main/src/pyqgc/qgctypes_core.py#L81) for the complete dictionary of messages currently supported. QGC protocol information sourced from public domain Quectel GNSS Protocol Specification © 2021-2025, Quectel.
+The current alpha release implements QGC message types for the LG290P and LG580P receivers and the LU600 IMU module, but is readily [extensible](#extensibility). Refer to `QGC_MSGIDS` in [qgctypes_core.py](https://github.com/semuconsulting/pyqgc/blob/main/src/pyqgc/qgctypes_core.py#L81) for the complete dictionary of messages currently supported. QGC protocol information sourced from public domain Quectel GNSS Protocol Specification © 2021-2025, Quectel.
 
 Sphinx API Documentation in HTML format is available at [https://www.semuconsulting.com/pyqgc/](https://www.semuconsulting.com/pyqgc/).
 
