@@ -160,10 +160,16 @@ from pyqgc import (
 )
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as stream:
-  stream.connect(("localhost", 50007))
-  qgr = QGCReader(stream, protfilter=NMEA_PROTOCOL | QGC_PROTOCOL | RTCM3_PROTOCOL, validate=VALCKSUM, quitonerror=ERR_IGNORE)
-  for raw_data, parsed_data in qgr:
-    print(parsed_data)
+    stream.connect(("localhost", 50007))
+    qgr = QGCReader(
+        stream,
+        protfilter=NMEA_PROTOCOL | QGC_PROTOCOL | RTCM3_PROTOCOL,
+        validate=VALCKSUM,
+        quitonerror=ERR_IGNORE,
+    )
+    for raw_data, parsed_data in qgr:
+        print(parsed_data)
+
 ```
 ```
 <QGC(RAW-HASE6, msgver=1, reserved1=0, prn=34, hasmode=1, msgtype=1, reserved2=0, page=2, reserved3=0, msgdata=b'\x38\xb2\x00\xe8\x50\xe9\xa0\x5e\x7f\xc6\x0d\x00\x31\xff\x2e\x00\x00\x5b\xfe\x50\x2c\xc0\xe1\x00\x00\x2f\x77\xe0\x0b\x20\xc6\xe5\x3f\x49\x79\xf0\x10\x50\x11\xf8\xcb\xeb\x7f\x31\x04\x67\xd0\x80\xf2\x05\xc0\x0e\x81\xb2\x00\xe8\x50\xe9\xa0\x5e\x7f\xc6\x0d\x00\x31\xff\x2e\x00\x00\x5b\xfe\x50\x2c\xc0\xe1\x00\x00\x2f\x77\xe0\x0b\x20\xc6\xe5\x3f\x49\x79\xf0\x10\x50\x11\xf8\xcb\xeb\x7f\x31\x04\x67\xd0\x80\xf2\x05\xc0\x0e\x81\xc8')>

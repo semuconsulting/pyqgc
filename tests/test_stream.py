@@ -124,8 +124,8 @@ class StreamTest(unittest.TestCase):
             "<NMEA(GNGSA, opMode=A, navMode=3, svid_01=66, svid_02=76, svid_03=, svid_04=, svid_05=, svid_06=, svid_07=, svid_08=, svid_09=, svid_10=, svid_11=, svid_12=, PDOP=9.62, HDOP=5.88, VDOP=7.62, systemId=2)>",
             "<NMEA(GNGSA, opMode=A, navMode=3, svid_01=, svid_02=, svid_03=, svid_04=, svid_05=, svid_06=, svid_07=, svid_08=, svid_09=, svid_10=, svid_11=, svid_12=, PDOP=9.62, HDOP=5.88, VDOP=7.62, systemId=3)>",
             "<NMEA(GNGSA, opMode=A, navMode=3, svid_01=, svid_02=, svid_03=, svid_04=, svid_05=, svid_06=, svid_07=, svid_08=, svid_09=, svid_10=, svid_11=, svid_12=, PDOP=9.62, HDOP=5.88, VDOP=7.62, systemId=4)>",
-            "<NMEA(GPGSV, numMsg=3, msgNum=1, numSV=11, svid_01=1, elv_01=6.0, az_01=14, cno_01=8, svid_02=12, elv_02=43.0, az_02=207, cno_02=28, svid_03=14, elv_03=6.0, az_03=49, cno_03=, svid_04=15, elv_04=44.0, az_04=171, cno_04=23, signalID=1)>",
-            "<NMEA(GPGSV, numMsg=3, msgNum=2, numSV=11, svid_01=17, elv_01=32.0, az_01=64, cno_01=16, svid_02=19, elv_02=33.0, az_02=94, cno_02=, svid_03=20, elv_03=20.0, az_03=251, cno_03=31, svid_04=21, elv_04=4.0, az_04=354, cno_04=, signalID=1)>",
+            "<NMEA(GPGSV, numMsg=3, msgNum=1, numSV=11, svid_01=1, elv_01=6, az_01=14, cno_01=8, svid_02=12, elv_02=43, az_02=207, cno_02=28, svid_03=14, elv_03=6, az_03=49, cno_03=, svid_04=15, elv_04=44, az_04=171, cno_04=23, signalID=1)>",
+            "<NMEA(GPGSV, numMsg=3, msgNum=2, numSV=11, svid_01=17, elv_01=32, az_01=64, cno_01=16, svid_02=19, elv_02=33, az_02=94, cno_02=, svid_03=20, elv_03=20, az_03=251, cno_03=31, svid_04=21, elv_04=4, az_04=354, cno_04=, signalID=1)>",
         )
 
         i = 0
@@ -163,8 +163,8 @@ class StreamTest(unittest.TestCase):
             "<NMEA(GNGSA, opMode=A, navMode=3, svid_01=66, svid_02=76, svid_03=, svid_04=, svid_05=, svid_06=, svid_07=, svid_08=, svid_09=, svid_10=, svid_11=, svid_12=, PDOP=9.62, HDOP=5.88, VDOP=7.62, systemId=2)>",
             "<NMEA(GNGSA, opMode=A, navMode=3, svid_01=, svid_02=, svid_03=, svid_04=, svid_05=, svid_06=, svid_07=, svid_08=, svid_09=, svid_10=, svid_11=, svid_12=, PDOP=9.62, HDOP=5.88, VDOP=7.62, systemId=3)>",
             "<NMEA(GNGSA, opMode=A, navMode=3, svid_01=, svid_02=, svid_03=, svid_04=, svid_05=, svid_06=, svid_07=, svid_08=, svid_09=, svid_10=, svid_11=, svid_12=, PDOP=9.62, HDOP=5.88, VDOP=7.62, systemId=4)>",
-            "<NMEA(GPGSV, numMsg=3, msgNum=1, numSV=11, svid_01=1, elv_01=6.0, az_01=14, cno_01=8, svid_02=12, elv_02=43.0, az_02=207, cno_02=28, svid_03=14, elv_03=6.0, az_03=49, cno_03=, svid_04=15, elv_04=44.0, az_04=171, cno_04=23, signalID=1)>",
-            "<NMEA(GPGSV, numMsg=3, msgNum=2, numSV=11, svid_01=17, elv_01=32.0, az_01=64, cno_01=16, svid_02=19, elv_02=33.0, az_02=94, cno_02=, svid_03=20, elv_03=20.0, az_03=251, cno_03=31, svid_04=21, elv_04=4.0, az_04=354, cno_04=, signalID=1)>",
+            "<NMEA(GPGSV, numMsg=3, msgNum=1, numSV=11, svid_01=1, elv_01=6, az_01=14, cno_01=8, svid_02=12, elv_02=43, az_02=207, cno_02=28, svid_03=14, elv_03=6, az_03=49, cno_03=, svid_04=15, elv_04=44, az_04=171, cno_04=23, signalID=1)>",
+            "<NMEA(GPGSV, numMsg=3, msgNum=2, numSV=11, svid_01=17, elv_01=32, az_01=64, cno_01=16, svid_02=19, elv_02=33, az_02=94, cno_02=, svid_03=20, elv_03=20, az_03=251, cno_03=31, svid_04=21, elv_04=4, az_04=354, cno_04=, signalID=1)>",
         )
 
         i = 0

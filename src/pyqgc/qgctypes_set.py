@@ -12,7 +12,6 @@ https://www.quectel.com/download/quectel_lg290p03lgx80p03_gnss_protocol_specific
 from pyqgc.qgctypes_core import (
     U1,
     U2,
-    U4,
 )
 from pyqgc.qgctypes_get import QGC_PAYLOADS_GET
 

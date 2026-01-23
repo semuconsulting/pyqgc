@@ -37,7 +37,7 @@ msg = QGCMessage(
     intfstatus=1,
     baudrate=921600,
     databit=8,
-    parity=0,
+    parity=0,  # int values default to 0 so this could be omitted here
     stopbit=1,
 )
 print(msg)
