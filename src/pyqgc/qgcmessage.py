@@ -467,7 +467,7 @@ class QGCMessage:
                 # intended to be character strings
                 if isinstance(val, bytes):
                     val = escapeall(val)
-                stg += att + "=" + str(val)
+                stg += att + "=" + str(val).rstrip()
                 if i < len(self.__dict__) - 1:
                     stg += ", "
         stg += ")>"

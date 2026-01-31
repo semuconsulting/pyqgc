@@ -317,7 +317,7 @@ def val2bytes(val, att: str) -> bytes:
     if atttyp(att) == "X":  # byte
         valb = val
     elif atttyp(att) == "C":  # string
-        val = valb.encode("utf-8", errors="backslashreplace")
+        valb = f"{val:<{attsiz(att)}}".encode("utf-8", errors="backslashreplace")
     elif atttyp(att) in ("S", "U"):  # integer
         valb = val.to_bytes(attsiz(att), byteorder="little", signed=atttyp(att) == "S")
     elif atttyp(att) == "R":  # floating point

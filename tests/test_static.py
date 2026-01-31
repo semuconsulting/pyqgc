@@ -151,13 +151,15 @@ class StaticTest(unittest.TestCase):
             (23.12345678, qgt.R4),
             (-23.12345678912345, qgt.R8),
             ("test1234", qgt.C8),
+            ("test1234", "C016"),
         ]
         EXPECTED_RESULTS = [
             b"\x29\x09",
             b"\x44\x55",
             b"\xd7\xfc\xb8\x41",
             b"\x1f\xc1\x37\xdd\x9a\x1f\x37\xc0",
-            "test1234",
+            b"test1234",
+            b"test1234        ",
         ]
         for i, inp in enumerate(INPUTS):
             (val, att) = inp
