@@ -46,6 +46,7 @@ QGC_PAYLOADS_GET = {
             {
                 "reserved4": U5,
                 "pppstatus": U1,  # 0 normal, 1 abnormal
+                "reserved3": U2,
             },
         ),
         "msgtype": U1,

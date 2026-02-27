@@ -12,9 +12,9 @@ Created on 26 Sep 2020
 
 # pylint: disable=too-many-positional-arguments, too-many-locals, too-many-arguments
 
-import struct
+from types import NoneType
 
-from pyqgc.exceptions import QGCMessageError, QGCTypeError
+from pyqgc.exceptions import QGCMessageError
 from pyqgc.qgchelpers import (
     attsiz,
     bytes2val,
@@ -47,8 +47,8 @@ class QGCMessage:
         self,
         msggrp: bytes,
         msgid: bytes,
-        checksum: bytes = None,
-        length: bytes = None,
+        checksum: bytes | NoneType = None,
+        length: bytes | NoneType = None,
         msgmode: int = GET,
         parsebitfield: bool = True,
         **kwargs,
@@ -73,10 +73,12 @@ class QGCMessage:
         :raises: QGCMessageError
         """
 
+        if msgmode not in (GET, SET, POLL):
+            raise QGCMessageError(f"Invalid msgmode {msgmode} - must be 0, 1 or 2")
+
         # object is mutable during initialisation only
         super().__setattr__("_immutable", False)
         self._mode = msgmode
-        self._payload = b""
         self._length = length  # bytes
         if length is None:
             self._lengthint = 0
@@ -86,62 +88,22 @@ class QGCMessage:
         self._msggrp = msggrp
         self._msgid = msgid
         self._parsebf = parsebitfield  # parsing bitfields Y/N?
+        self._payload = kwargs.get("payload", b"")
+        self._offset = 0  # payload offset in bytes
+        self._index = []  # array of (nested) group indices
+        self._suffix = ""  # attribute index suffix ("_01", "_02", etc.)
 
-        if msgmode not in (GET, SET, POLL):
-            raise QGCMessageError(f"Invalid msgmode {msgmode} - must be 0, 1 or 2")
-
-        self._do_attributes(**kwargs)
+        pdict = self._get_dict(**kwargs)  # get appropriate payload dict
+        print(
+            f"DEBUG {self.identity=} {msgmode=} {length=} {msgid=} {msggrp=} {pdict=}"
+        )
+        for anam in pdict:  # process each attribute in dict
+            self._set_attribute(anam, pdict, **kwargs)
+        self._do_len_checksum()
 
         self._immutable = True  # once initialised, object is immutable
 
-    def _do_attributes(self, **kwargs):
-        """
-        Populate QGCMessage from named attribute keywords.
-        Where a named attribute is absent, set to a nominal value (zeros or blanks).
-
-        :param kwargs: optional payload key/value pairs
-        :raises: QGCTypeError
-
-        """
-
-        offset = 0  # payload offset in bytes
-        index = []  # array of (nested) group indices
-
-        try:
-            if len(kwargs) == 0:  # if no kwargs, assume null payload
-                self._payload = None
-            else:
-                self._payload = kwargs.get("payload", b"")
-                pdict = self._get_dict(**kwargs)  # get appropriate payload dict
-                for anam in pdict:  # process each attribute in dict
-                    offset, index = self._set_attribute(
-                        anam, pdict, offset, index, **kwargs
-                    )
-            self._do_len_checksum()
-
-        except (
-            AttributeError,
-            struct.error,
-            TypeError,
-            ValueError,
-        ) as err:
-            raise QGCTypeError(
-                (
-                    f"Incorrect type for attribute '{anam}' "
-                    f"in {['GET', 'SET', 'POLL'][self._mode]} message class {self.identity}"
-                )
-            ) from err
-        except (OverflowError,) as err:
-            raise QGCTypeError(
-                (
-                    f"Overflow error for attribute '{anam}' "
-                    f"in {['GET', 'SET', 'POLL'][self._mode]} message class {self.identity}"
-                )
-            ) from err
-
-    def _set_attribute(
-        self, anam: str, pdict: dict, offset: int, index: list, **kwargs
-    ) -> tuple:
+    def _set_attribute(self, anam: str, pdict: dict, **kwargs):  #  -> tuple:
         """
         Recursive routine to set individual or grouped payload attributes.
 
@@ -154,7 +116,6 @@ class QGCMessage:
         :rtype: tuple
 
         """
-
         adef = pdict[anam]  # get attribute definition
         if isinstance(
             adef, tuple
@@ -162,23 +123,15 @@ class QGCMessage:
             numr, _ = adef
             if numr[0] == "X":  # bitfield
                 if self._parsebf:  # if we're parsing bitfields
-                    offset, index = self._set_attribute_bitfield(
-                        adef, offset, index, **kwargs
-                    )
+                    self._set_attribute_bitfield(adef, **kwargs)
                 else:  # treat bitfield as a single byte array
-                    offset = self._set_attribute_single(
-                        anam, numr, offset, index, **kwargs
-                    )
+                    self._set_attribute_single(anam, numr, **kwargs)
             else:  # repeating group of attributes
-                offset, index = self._set_attribute_group(adef, offset, index, **kwargs)
+                self._set_attribute_group(adef, **kwargs)
         else:  # single attribute
-            offset = self._set_attribute_single(anam, adef, offset, index, **kwargs)
+            self._set_attribute_single(anam, adef, **kwargs)
 
-        return (offset, index)
-
-    def _set_attribute_group(
-        self, adef: tuple, offset: int, index: list, **kwargs
-    ) -> tuple:
+    def _set_attribute_group(self, adef: tuple, **kwargs):
         """
         Process (nested) group of attributes.
 
@@ -191,39 +144,30 @@ class QGCMessage:
 
         """
 
-        index.append(0)  # add a (nested) group index
+        self._index.append(0)  # add a (nested) group index
         anam, gdict = adef  # attribute signifying group size, group dictionary
         # derive or retrieve number of items in group
         if isinstance(anam, int):  # fixed number of repeats
             gsiz = anam
         elif anam == "None":  # number of repeats 'variable by size'
-            gsiz = self._calc_num_repeats(gdict, self._payload, offset, 0)
+            gsiz = self._calc_num_repeats(gdict, self._payload, self._offset, 0)
         else:  # number of repeats is defined in named attribute
             gsiz = getattr(self, anam)
         # recursively process each group attribute,
         # incrementing the payload offset and index as we go
         for i in range(gsiz):
-            index[-1] = i + 1
+            self._index[-1] = i + 1
             for key1 in gdict:
-                offset, index = self._set_attribute(
-                    key1, gdict, offset, index, **kwargs
-                )
+                self._set_attribute(key1, gdict, **kwargs)
 
-        index.pop()  # remove this (nested) group index
+        self._index.pop()  # remove this (nested) group index
 
-        return (offset, index)
-
-    def _set_attribute_single(
-        self, anam: str, adef: object, offset: int, index: list, **kwargs
-    ) -> int:
+    def _set_attribute_single(self, anam: str, adef: str, **kwargs):
         """
         Set individual attribute value, applying scaling where appropriate.
 
         :param str anam: attribute keyword
-        EITHER
-        :param str adef: attribute definition string e.g. 'U002'
-        OR
-        :param list adef: if scaled, list of [attribute type string, scaling factor float]
+        :param str adef: attribute definition string e.g. 'U002', 'R004*100'
         :param int offset: payload offset in bytes
         :param list index: repeating group index array
         :param kwargs: optional payload key/value pairs
@@ -233,15 +177,9 @@ class QGCMessage:
         """
         # pylint: disable=no-member
 
-        # if attribute is scaled
-        ares = 1
-        if isinstance(adef, list):
-            ares = adef[1]  # attribute resolution (i.e. scaling factor)
-            adef = adef[0]  # attribute definition
-
         # if attribute is part of a (nested) repeating group, suffix name with index
         anami = anam
-        for i in index:  # one index for each nested level
+        for i in self._index:  # one index for each nested level
             if i > 0:
                 anami += f"_{i:02d}"
 
@@ -261,35 +199,24 @@ class QGCMessage:
         # if payload keyword has been provided,
         # use the appropriate offset of the payload
         if "payload" in kwargs:
-            valb = self._payload[offset : offset + asiz]
-            if ares == 1:
-                val = bytes2val(valb, adef)
-            else:
-                val = round(bytes2val(valb, adef) * ares, SCALROUND)
+            valb = self._payload[self._offset : self._offset + asiz]
+            val = bytes2val(valb, adef)
         else:
             # if individual keyword has been provided,
             # set to provided value, else set to
             # nominal value
             val = kwargs.get(anami, nomval(adef))
-            if ares == 1:
-                valb = val2bytes(val, adef)
-            else:
-                valb = val2bytes(int(val / ares), adef)
+            valb = val2bytes(val, adef)
             self._payload += valb
 
         setattr(self, anami, val)
+        self._offset += asiz
 
-        return offset + asiz
-
-    def _set_attribute_bitfield(
-        self, atyp: str, offset: int, index: list, **kwargs
-    ) -> tuple:
+    def _set_attribute_bitfield(self, adef: tuple[str, dict], **kwargs):
         """
         Parse bitfield attribute (type 'X').
 
-        :param str atyp: attribute type e.g. 'X002'
-        :param int offset: payload offset in bytes
-        :param list index: repeating group index array
+        :param tuple[str, dict] adef: attribute definition and dictionary
         :param kwargs: optional payload key/value pairs
         :return: (offset, index[])
         :rtype: tuple
@@ -297,70 +224,84 @@ class QGCMessage:
         """
         # pylint: disable=no-member
 
-        btyp, bdict = atyp  # type of bitfield, bitfield dictionary
+        btyp, bdict = adef  # type of bitfield, bitfield dictionary
         bsiz = attsiz(btyp)  # size of bitfield in bytes
         bfoffset = 0
 
         # if payload keyword has been provided,
         # use the appropriate offset of the payload
         if "payload" in kwargs:
-            bitfield = int.from_bytes(self._payload[offset : offset + bsiz], "little")
+            bitfield = int.from_bytes(
+                self._payload[self._offset : self._offset + bsiz], "little"
+            )
         else:
             bitfield = 0
 
         # process each flag in bitfield
         for key, keyt in bdict.items():
             bitfield, bfoffset = self._set_attribute_bits(
-                bitfield, bfoffset, key, keyt, index, **kwargs
+                bitfield, bfoffset, key, keyt, self._index, **kwargs
             )
 
         # update payload
         if "payload" not in kwargs:
             self._payload += bitfield.to_bytes(bsiz, "little")
 
-        return (offset + bsiz, index)
+        self._offset += bsiz
 
     def _set_attribute_bits(
         self,
         bitfield: int,
         bfoffset: int,
-        key: str,
-        keyt: str,
+        anam: str,
+        adef: str,
         index: list,
         **kwargs,
-    ) -> tuple:
+    ) -> tuple[int, int]:
         """
         Set individual bit flag from bitfield.
 
         :param int bitfield: bitfield
         :param int bfoffset: bitfield offset in bits
-        :param str key: attribute key name
-        :param str keyt: key type e.g. 'U001'
+        :param str anam: attribute name
+        :param str adef: attribute definition e.g. 'U001'
         :param list index: repeating group index array
         :param kwargs: optional payload key/value pairs
         :return: (bitfield, bfoffset)
-        :rtype: tuple
+        :rtype: tuple[int,int]
 
         """
         # pylint: disable=no-member
 
         # if attribute is part of a (nested) repeating group, suffix name with index
-        keyr = key
+        anami = anam
         for i in index:  # one index for each nested level
             if i > 0:
-                keyr += f"_{i:02d}"
+                anami += f"_{i:02d}"
 
-        atts = attsiz(keyt)  # determine flag size in bits
+        # if attribute is scaled
+        if "*" in adef:
+            adef, scaling = adef.split("*", 1)
+            scaling = float(scaling)
+        else:
+            scaling = 1
+
+        asiz = attsiz(adef)  # determine flag size in bits
 
         if "payload" in kwargs:
-            val = (bitfield >> bfoffset) & ((1 << atts) - 1)
+            val = (bitfield >> bfoffset) & ((1 << asiz) - 1)
+            if scaling != 1:
+                val = round(val / scaling, SCALROUND)
         else:
-            val = kwargs.get(keyr, 0)
+            if scaling == 1:
+                val = kwargs.get(anami, 0)
+            else:
+                val = int(kwargs.get(anami, 0) * scaling)
             bitfield = bitfield | (val << bfoffset)
 
-        if key[0:8] != "reserved":  # don't bother to set reserved bits
-            setattr(self, keyr, val)
-        return (bitfield, bfoffset + atts)
+        if anam[0:8] != "reserved":  # don't bother to set reserved bits
+            setattr(self, anami, val)
+        return (bitfield, bfoffset + asiz)
 
     def _do_len_checksum(self):
         """
@@ -392,7 +333,7 @@ class QGCMessage:
                 pdict = QGC_PAYLOADS_POLL[self.identity]
                 # alternate definitions
                 if self.identity == "CFG-MSG" and self._lengthint == 5:
-                    pdict = QGC_PAYLOADS_SET[f"{self.identity}-INTF"]
+                    pdict = QGC_PAYLOADS_POLL[f"{self.identity}-INTF"]
             elif self._mode == SET:
                 pdict = QGC_PAYLOADS_SET[self.identity]
                 # alternate definitions
@@ -467,7 +408,7 @@ class QGCMessage:
                 # intended to be character strings
                 if isinstance(val, bytes):
                     val = escapeall(val)
-                stg += att + "=" + str(val)
+                stg += att + "=" + str(val).rstrip()
                 if i < len(self.__dict__) - 1:
                     stg += ", "
         stg += ")>"
