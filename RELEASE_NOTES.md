@@ -1,5 +1,9 @@
 # pyqgc Release Notes
 
+### RELEASE 0.2.1
+
+1. Fix LU600 CFG-MSG POLL definition.
+
 ### RELEASE 0.2.0
 
 1. Minor internal enhancements.

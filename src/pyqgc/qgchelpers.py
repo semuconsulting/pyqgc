@@ -10,9 +10,10 @@ Created on 6 Oct 2025
 """
 
 import struct
+from typing import Any
 
 import pyqgc.exceptions as qge
-from pyqgc.qgctypes_core import ATTTYPE, GET, POLL, QGC_MSGIDS, SET, U2
+from pyqgc.qgctypes_core import ATTTYPE, GET, POLL, QGC_MSGIDS, SCALROUND, SET, U2
 from pyqgc.qgctypes_get import QGC_PAYLOADS_GET
 from pyqgc.qgctypes_poll import QGC_PAYLOADS_POLL
 from pyqgc.qgctypes_set import QGC_PAYLOADS_SET
@@ -84,28 +85,38 @@ def atttyp(att: str) -> str:
     return att[0:1]
 
 
-def bytes2val(valb: bytes, att: str) -> object:
+def bytes2val(valb: bytes, adef: str) -> Any:
     """
-    Convert bytes to value for given QGC attribute type.
+    Convert bytes to value for given UNI attribute type.
 
     :param bytes valb: attribute value in byte format e.g. b'\\\\x19\\\\x00\\\\x00\\\\x00'
-    :param str att: attribute type e.g. 'U004'
+    :param str adef: attribute definition e.g. 'U004'
     :return: attribute value as int, float, str or bytes
-    :rtype: object
-    :raises: QGCTypeError
+    :rtype: Any
+    :raises: UNITypeError
 
     """
 
-    if atttyp(att) == "X":  # bytes
-        val = valb
-    elif atttyp(att) == "C":  # string
-        val = valb.decode("utf-8", errors="backslashreplace")
-    elif atttyp(att) in ("S", "U"):  # integer
-        val = int.from_bytes(valb, byteorder="little", signed=atttyp(att) == "S")
-    elif atttyp(att) == "R":  # floating point
-        val = struct.unpack("<f" if attsiz(att) == 4 else "<d", valb)[0]
+    if "*" in adef:
+        adef, scaling = adef.split("*", 1)
+        scaling = float(scaling)
     else:
-        raise qge.QGCTypeError(f"Unknown attribute type {att}")
+        scaling = 1
+
+    if atttyp(adef) == "X":  # bytes
+        val = valb
+    elif atttyp(adef) == "C":  # string
+        val = valb.replace(b"\x00", b" ").decode("utf-8", errors="backslashreplace")
+    elif atttyp(adef) in ("S", "U"):  # integer
+        val = int.from_bytes(valb, byteorder="little", signed=atttyp(adef) == "S")
+        if scaling != 1:
+            val = round(val / scaling, SCALROUND)
+    elif atttyp(adef) == "R":  # floating point
+        val = struct.unpack("<f" if attsiz(adef) == 4 else "<d", valb)[0]
+        if scaling != 1:
+            val = round(val / scaling, SCALROUND)
+    else:
+        raise qge.QGCTypeError(f"Unknown attribute type {adef}")
     return val
 
 
@@ -293,33 +304,46 @@ def nomval(att: str) -> object:
     return val
 
 
-def val2bytes(val, att: str) -> bytes:
+def val2bytes(val: Any, adef: str) -> bytes:
     """
-    Convert value to bytes for given QGC attribute type.
+    Convert value to bytes for given UNI attribute type.
 
-    :param object val: attribute value e.g. 25
-    :param str att: attribute type e.g. 'U004'
+    :param Any val: attribute value e.g. 25
+    :param str adef: attribute definition e.g. 'U004'
     :return: attribute value as bytes
     :rtype: bytes
-    :raises: QGCTypeError
+    :raises: UNITypeError
 
     """
 
+    if "*" in adef:
+        adef, scaling = adef.split("*", 1)
+        scaling = float(scaling)
+    else:
+        scaling = 1
+
     try:
-        if not isinstance(val, ATTTYPE[atttyp(att)]):
+        if not isinstance(val, ATTTYPE[atttyp(adef)]):
             raise TypeError(
-                f"Attribute type {att} value {val} must be {ATTTYPE[atttyp(att)]}, not {type(val)}"
+                f"Attribute type {adef} value {val} must be "
+                f"{ATTTYPE[atttyp(adef)]}, not {type(val)}"
             )
     except KeyError as err:
-        raise qge.QGCTypeError(f"Unknown attribute type {att}") from err
+        raise qge.QGCTypeError(f"Unknown attribute type {adef}") from err
 
     valb = val
-    if atttyp(att) == "X":  # byte
+    if atttyp(adef) == "X":  # byte
         valb = val
-    elif atttyp(att) == "C":  # string
-        valb = f"{val:<{attsiz(att)}}".encode("utf-8", errors="backslashreplace")
-    elif atttyp(att) in ("S", "U"):  # integer
-        valb = val.to_bytes(attsiz(att), byteorder="little", signed=atttyp(att) == "S")
-    elif atttyp(att) == "R":  # floating point
-        valb = struct.pack("<f" if attsiz(att) == 4 else "<d", float(val))
+    elif atttyp(adef) == "C":  # string
+        valb = f"{val:<{attsiz(adef)}}".encode("utf-8", errors="backslashreplace")
+    elif atttyp(adef) in ("S", "U"):  # integer
+        if scaling != 1:
+            val = int(val * scaling)
+        valb = val.to_bytes(
+            attsiz(adef), byteorder="little", signed=atttyp(adef) == "S"
+        )
+    elif atttyp(adef) == "R":  # floating point
+        if scaling != 1:
+            val = float(val * scaling)
+        valb = struct.pack("<f" if attsiz(adef) == 4 else "<d", val)
     return valb

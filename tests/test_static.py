@@ -316,9 +316,9 @@ class StaticTest(unittest.TestCase):
 
     def testbadType(self):  # incorrect type (integer not binary)
         EXPECTED_ERROR = (
-            "Incorrect type for attribute 'prn' in GET message class RAW-PPPB2B"
+            "Attribute type U001 value 60 must be <class 'int'>, not <class 'str'>"
         )
-        with self.assertRaisesRegex(qge.QGCTypeError, EXPECTED_ERROR):
+        with self.assertRaisesRegex(TypeError, EXPECTED_ERROR):
             QGCMessage(
                 b"\x0a",
                 b"\xb2",
@@ -353,8 +353,8 @@ class StaticTest(unittest.TestCase):
 
     def testOverflow(self):
         with self.assertRaisesRegex(
-            qge.QGCTypeError,
-            "Overflow error for attribute 'prn' in GET message class RAW-PPPB2B",
+            OverflowError,
+            "int too big to convert",
         ):
             msg = QGCMessage(
                 b"\x0a",

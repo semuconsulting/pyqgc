@@ -185,7 +185,7 @@ class StreamTest(unittest.TestCase):
 
     def testlu600set(self):  # test LU600 SET messages
         EXPECTED_RESULTS = (
-            "<QGC(CTL-PAR, mode=1, reserved1=0)>",
+            "<QGC(CTL-PAR, parmode=1, reserved1=0)>",
             "<QGC(CFG-UART, intfid=1, intfstatus=1, reserved1=0, baudrate=921600, databit=8, parity=0, stopbit=1, reserved2=0)>",
             "<QGC(CFG-UART, intfid=1, intfstatus=0)>",
             "<QGC(CFG-CAN, intfid=0, intfstatus=1, frameprotocol=0, frameformat=0, baudrate=500000, databaudrate=2000000)>",
@@ -197,8 +197,8 @@ class StreamTest(unittest.TestCase):
             "<QGC(CFG-MSG, intftype=4, intfid=0, setmsggrp=202, setmsgid=2, rate=10, msgver=3)>",
             "<QGC(CFG-IMULPF, gyofilter=46, accfilter=46)>",
             "<QGC(CTL-RST, rstmask=0, rstmode=1, reserved1=0)>",
-            "<QGC(CTL-PAR, mode=1, reserved1=0)>",
-            "<QGC(CTL-PAR, mode=2, reserved1=0)>",
+            "<QGC(CTL-PAR, parmode=1, reserved1=0)>",
+            "<QGC(CTL-PAR, parmode=2, reserved1=0)>",
         )
 
         i = 0
@@ -276,9 +276,9 @@ class StreamTest(unittest.TestCase):
             "<QGC(CFG-CAN, intfid=0)>",
             "<QGC(CFG-MSG, setmsggrp=241, setmsgid=10, msgver=3)>",
             "<QGC(CFG-MSG, setmsggrp=202, setmsgid=1, msgver=3)>",
-            "<QGC(CFG-MSG, intftype=4, intfid=0, setmsggrp=202, setmsgid=2, rate=3, msgver=0)>",
-            "<QGC(CFG-IMULPF)>",
-            "<QGC(INF-VER)>",
+            "<QGC(CFG-MSG, intftype=4, intfid=0, setmsggrp=202, setmsgid=2, msgver=3)>",
+            "<QGC(CFG-IMULPF, )>",
+            "<QGC(INF-VER, )>",
             "<QGC(INF-SN, snid=1)>",
         )
 

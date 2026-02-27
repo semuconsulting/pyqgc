@@ -1,5 +1,5 @@
 {
-    // PyGPSClient VSCode workflow.
+    // pyqgc VSCode workflow.
     //
     // These build, install and test tasks are targeted at a venv
     // called 'pygpsclient' located in the user's home directory.
@@ -195,7 +195,7 @@
                     "pip",
                     "install",
                     "--force-reinstall",
-                    "${workspaceFolder}/dist/pyqgc-0.2.0-py3-none-any.whl",
+                    "${workspaceFolder}/dist/pyqgc-0.2.1-py3-none-any.whl",
                 ]
             },
             "problemMatcher": [],

@@ -30,7 +30,7 @@ QGC_PAYLOADS_SET = {
     "CFG-IMULPF": QGC_PAYLOADS_GET["CFG-IMULPF"],
     "CTL-RST": {"rstmask": U2, "rstmode": U1, "reserved1": U1},
     "CTL-PAR": {
-        "mode": U1,
+        "parmode": U1,  # 0x01 = save, 0x02 = restore
         "reserved1": U1,
     },
     "INF-SN": {
