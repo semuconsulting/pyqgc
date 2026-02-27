@@ -94,9 +94,6 @@ class QGCMessage:
         self._suffix = ""  # attribute index suffix ("_01", "_02", etc.)
 
         pdict = self._get_dict(**kwargs)  # get appropriate payload dict
-        print(
-            f"DEBUG {self.identity=} {msgmode=} {length=} {msgid=} {msggrp=} {pdict=}"
-        )
         for anam in pdict:  # process each attribute in dict
             self._set_attribute(anam, pdict, **kwargs)
         self._do_len_checksum()
