@@ -34,9 +34,9 @@ The current alpha release implements QGC message types for the LG290P and LG580P
 
 Sphinx API Documentation in HTML format is available at [https://www.semuconsulting.com/pyqgc/](https://www.semuconsulting.com/pyqgc/).
 
-Contributions welcome - please refer to [CONTRIBUTING.MD](https://github.com/semuconsulting/pyqgc/blob/master/CONTRIBUTING.md). Feel free to discuss any proposed changes beforehand in the [Discussion Channel](https://github.com/semuconsulting/pyqgc/discussions/categories/ideas).
+Contributions welcome - please refer to [CONTRIBUTING.MD](https://github.com/semuconsulting/pyqgc/blob/main/CONTRIBUTING.md). Feel free to discuss any proposed changes beforehand in the [Discussion Channel](https://github.com/semuconsulting/pyqgc/discussions/categories/ideas).
 
-[Bug reports](https://github.com/semuconsulting/pyqgc/blob/master/.github/ISSUE_TEMPLATE/bug_report.md) and [Feature requests](https://github.com/semuconsulting/pyqgc/blob/master/.github/ISSUE_TEMPLATE/feature_request.md) - please use the templates provided. For general queries and advice, post a message to one of the [pyqgc Discussions](https://github.com/semuconsulting/pyqgc/discussions) channels.
+[Bug reports](https://github.com/semuconsulting/pyqgc/blob/main/.github/ISSUE_TEMPLATE/bug_report.md) and [Feature requests](https://github.com/semuconsulting/pyqgc/blob/main/.github/ISSUE_TEMPLATE/feature_request.md) - please use the templates provided. For general queries and advice, post a message to one of the [pyqgc Discussions](https://github.com/semuconsulting/pyqgc/discussions) channels.
 
 ![No Copilot](https://github.com/semuconsulting/PyGPSClient/blob/master/images/nocopilot100.png?raw=true)
 
