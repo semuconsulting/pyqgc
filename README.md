@@ -24,7 +24,7 @@ This is an independent project and we have no affiliation whatsoever with Quecte
 ![Status](https://img.shields.io/pypi/status/pyqgc)
 ![Release](https://img.shields.io/github/v/release/semuconsulting/pyqgc?include_prereleases)
 ![Build](https://img.shields.io/github/actions/workflow/status/semuconsulting/pyqgc/main.yml?branch=main)
-![Codecov](https://img.shields.io/codecov/c/github/semuconsulting/pyqgc)
+![Coverage](https://github.com/semuconsulting/pyqgc/blob/main/images/coverage.svg?raw=true)
 ![Release Date](https://img.shields.io/github/release-date-pre/semuconsulting/pyqgc)
 ![Last Commit](https://img.shields.io/github/last-commit/semuconsulting/pyqgc)
 ![Contributors](https://img.shields.io/github/contributors/semuconsulting/pyqgc.svg)
