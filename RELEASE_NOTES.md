@@ -2,7 +2,7 @@
 
 ### RELEASE 0.3.0
 
-1. Add support for LG2980P v1.3 firmware - additional QTM NAV message types:
+1. Add support for LG580P v1.3 firmware - additional QTM NAV message types:
 
     - b"\x08\x01": "NAV-POS",  # output
     - b"\x08\x11": "NAV-VEL",  # output
