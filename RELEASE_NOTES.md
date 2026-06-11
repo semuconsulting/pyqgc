@@ -1,6 +1,6 @@
 # pyqgc Release Notes
 
-### RELEASE 0.3.0
+### RELEASE 1.0.0
 
 1. Add support for LG580P v1.3 firmware - additional QTM NAV message types:
 
