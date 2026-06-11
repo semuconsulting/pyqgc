@@ -27,6 +27,7 @@ from pyqgc import (
     VALCKSUM,
     VALNONE,
     ERR_RAISE,
+    ERR_IGNORE,
     NMEA_PROTOCOL,
     RTCM3_PROTOCOL,
     QGC_PROTOCOL,
@@ -251,10 +252,40 @@ class StreamTest(unittest.TestCase):
             "<QGC(INF-SN, snid=1, snstr=Q29G0F222200666)>",
             "<QGC(ACK-ACK, ackmsggrp=6, ackmsgid=2, errcode=0, reserved1=0)>",
             "<QGC(SEN-IMU, msgver=3, timestamp=15490, imutemp=27.549999237060547, gyox=-0.08710326999425888, gyoy=-0.1629486083984375, gyoz=0.00035095211933366954, accx=0.006952259223908186, accy=0.0011053276248276234, accz=-0.9955214858055115)>",
-        )
+            )
 
         i = 0
         with open(os.path.join(DIRNAME, "pygpsdata_lu600_qgc_get.log"), "rb") as stream:
+            ubr = QGCReader(
+                stream,
+                protfilter=QGC_PROTOCOL,
+                parsing=True,
+                parsebitfield=1,
+                validate=VALCKSUM,
+                msgmode=GET,
+                quitonerror=ERR_RAISE,
+            )
+            for raw, parsed in ubr:
+                # print(f'"{parsed}",')
+                self.assertEqual(str(parsed), EXPECTED_RESULTS[i])
+                i += 1
+            self.assertEqual(i, len(EXPECTED_RESULTS))
+
+    def testlg580pget(self):  # test LG580P GET messages
+        EXPECTED_RESULTS = (
+            "<QGC(NAV-POS, msgver=1, timestatus=2, reserved1=0, hour=13, minute=2, second=21, millisecond=551, wn=2393, tow=565359551, soltype=1, postype=0, lat=0.0, lon=0.0, alt=0.0, sep=0.0, acclat=0.0, acclon=0.0, accalt=0.0, rsid=0, diffage=0.0, reserved2=0)>",
+            "<QGC(NAV-VEL, msgver=1, timestatus=2, reserved1=0, hour=13, minute=24, second=43, millisecond=51, wn=2393, tow=566701051, soltype=1, veltype=0, veln=0.0, vele=0.0, velu=0.0, spdhor=0.0, spd=0.0, cog=0.0, spdhoracc=0.0, spdacc=0.0, cogacc=0.0, rsid=0, diffage=0.0, reserved2=0)>",
+            "<QGC(NAV-TIME, msgver=1, timestatus=2, reserved1=0, hour=13, minute=31, second=47, millisecond=251, wn=2393, tow=567125251, year=2025, month=11, day=22, reserved2=0)>",
+            "<QGC(NAV-EVENTTIME, msgver=1, timestatus=2, reserved1=0, hour=7, minute=3, second=30, millisecond=34, wn=2394, tow=111828034, leapsec=18, reserved2=0, nanosec=34284523, offsetsec=0, offsetnanosec=34284523)>",
+            "<QGC(NAV-EVENTPOS, msgver=1, timestatus=2, reserved1=0, hour=7, minute=3, second=30, millisecond=34, wn=2394, tow=111828034, leapsec=18, reserved2=0, nanosec=34284523, offsetsec=0, offsetnanosec=34284523, soltype=0, postype=16, lat=31.82193431335628, lon=117.11545335643129, alt=46.90469816135512, sep=-4.945100784301758, acclat=2.3431992530822754, acclon=0.9604900479316711, accalt=3.2857413291931152, rsid=0, diffage=0.0, reserved3=0.0, satview=38, satused=38, veln=0.0005555878160521388, vele=-0.0016867032973095775, velu=0.0005829886649735272, cog=35.07217788696289)>",
+            "<QGC(NAV-TAR, msgver=1, timestatus=2, reserved1=0, hour=11, minute=20, second=26, millisecond=100, wn=2410, tow=300044100, soltype=0, postype=50, quality=4, reserved2=0, len=0.0031906412914395332, pitch=0.0, roll=0.0, heading=0.0, accpitch=0.0, accroll=0.0, accheading=0.0, usedsv=13, reserved3=0)>",
+            "<QGC(NAV2-POS, msgver=1, timestatus=0, reserved1=0, hour=0, minute=1, second=20, millisecond=700, wn=0, tow=80700, soltype=1, postype=0, lat=0.0, lon=0.0, alt=0.0, sep=0.0, acclat=0.0, acclon=0.0, accalt=0.0, rsid=0, diffage=0.0, reserved2=0)>",
+            "<QGC(NAV2-VEL, msgver=1, timestatus=0, reserved1=0, hour=0, minute=0, second=11, millisecond=900, wn=0, tow=11900, soltype=1, veltype=0, veln=0.0, vele=0.0, velu=0.0, spdhor=0.0, spd=0.0, cog=0.0, spdhoracc=0.0, spdacc=0.0, cogacc=0.0, rsid=0, diffage=0.0, reserved2=0)>",
+            "<QGC(NAV-NAV, msgver=1, timestatus=2, reserved1=0, hour=6, minute=56, second=38, millisecond=600, wn=2394, tow=111416600, leapsec=18, reserved2=0, soltype=0, postype=16, reserved3=0, lat=31.822568816220844, lon=117.1144470177054, alt=170.0900926887989, sep=-4.949951171875, acclat=1.1046580076217651, acclon=0.6853690147399902, accalt=2.0925183296203613, rsid=0, diffage=0.0, reserved4=0.0, satview=10, satused=10, reserved5=0, spdhor=53505.66796875, spdvert=-2.446684800936392e+23, spdhoracc=-1.9003529649327083e+34, spdvertacc=-1.991360546041576e-31, cog=1.2332426068975402e+29, cogacc=nan)>",
+        )
+
+        i = 0
+        with open(os.path.join(DIRNAME, "pygpsdata_lg580p_qgc_get.log"), "rb") as stream:
             ubr = QGCReader(
                 stream,
                 protfilter=QGC_PROTOCOL,
@@ -376,7 +407,7 @@ class StreamTest(unittest.TestCase):
         stream = b"QG\n\xb2U\x00\x01\x00\x00\x00\x00< \x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x105\xfcI\x04@\x01?w\x04\x00\x11\x00\x04@\x01\x10\x00D\x00\x11\x00\x05\x80\x00_k\x84\x00\x11\x00\x07}c\x10\x00x\x17\x0f\xfd\xd1\x02W\x10\x00D\x00\x11\x00\x04@\x01\x10\x00X\x7f\x00\x01\x816\xb0L\xf5"
         with self.assertRaisesRegex(
             QGCParseError,
-            "Message checksum b'L\\\\xf5' invalid - should be b'L\\\\xf4'",
+            "Message checksum b'\\\\x4c\\\\xf5' invalid - should be b'\\\\x4c\\\\xf4'",
         ):
             msg = QGCReader.parse(stream, msgmode=GET)
 

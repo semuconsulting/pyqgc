@@ -1,5 +1,19 @@
 # pyqgc Release Notes
 
+### RELEASE 1.0.0
+
+1. Add support for LG580P v1.3 firmware - additional QTM NAV message types:
+
+    - b"\x08\x01": "NAV-POS",  # output
+    - b"\x08\x11": "NAV-VEL",  # output
+    - b"\x08\x21": "NAV-TIME",  # output
+    - b"\x08\x41": "NAV-NAV",  # output
+    - b"\x08\x51": "NAV-EVENTTIME",  # output
+    - b"\x08\x52": "NAV-EVENTPOS",  # output
+    - b"\x08\x31": "NAV-TAR",  # output
+    - b"\x09\x01": "NAV2-POS",  # output
+    - b"\x09\x11": "NAV2-VEL",  # output
+
 ### RELEASE 0.2.2
 
 1. Fix LU600 CFG-MSG POLL definition.
