@@ -22,7 +22,7 @@ This is an independent project and we have no affiliation whatsoever with Quecte
 ## <a name="currentstatus">Current Status</a>
 
 ![Status](https://img.shields.io/pypi/status/pyqgc)
-![Release](https://img.shields.io/github/v/release/semuconsulting/pyqgc?include_prereleases)
+![Release](https://img.shields.io/github/v/release/semuconsulting/pyqgc)
 ![Build](https://img.shields.io/github/actions/workflow/status/semuconsulting/pyqgc/main.yml?branch=main)
 ![Coverage](https://github.com/semuconsulting/pyqgc/blob/main/images/coverage.svg?raw=true)
 ![Release Date](https://img.shields.io/github/release-date-pre/semuconsulting/pyqgc)
