@@ -44,6 +44,14 @@ pyqgc.qgctypes\_core module
    :undoc-members:
    :show-inheritance:
 
+pyqgc.qgctypes\_decodes module
+------------------------------
+
+.. automodule:: pyqgc.qgctypes_decodes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pyqgc.qgctypes\_get module
 --------------------------
 

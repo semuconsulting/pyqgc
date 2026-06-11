@@ -56,9 +56,12 @@ U5 = "U005"  # unsigned int 5
 U6 = "U006"  # unsigned int 6
 U8 = "U008"  # unsigned long long int 8 [0,2^64-1]
 U10 = "U010"  # unsigned long long int 10
+U12 = "U012"  # unsigned long long int 12
+U14 = "U014"  # unsigned long long int 14
 U15 = "U015"  # unsigned long long int 15
 U16 = "U016"  # unsigned long long int 16
 U17 = "U017"  # unsigned long long int 17
+U28 = "U028"  # unsigned long long int 28
 X1 = "X001"  # 8 bits field 1 Bit 7-0
 X2 = "X002"  # 16 bits field 2 Bit 15-0
 X4 = "X004"  # 32 bits field 4 Bit 31-0
@@ -90,6 +93,18 @@ QGC_MSGIDS = {
     b"\x0a\xb2": "RAW-PPPB2B",  # output
     b"\x0a\xb6": "RAW-QZSSL6",  # output
     b"\x0a\xe6": "RAW-HASE6",  # output
+    # ********************************************************************
+    # https://www.quectel.com/download/quectel_lg29xplgx80p_series_gnss_protocol_specification_v1-3/
+    # ********************************************************************
+    b"\x08\x01": "NAV-POS",  # output
+    b"\x08\x11": "NAV-VEL",  # output
+    b"\x08\x21": "NAV-TIME",  # output
+    b"\x08\x41": "NAV-NAV",  # output
+    b"\x08\x51": "NAV-EVENTTIME",  # output
+    b"\x08\x52": "NAV-EVENTPOS",  # output
+    b"\x08\x31": "NAV-TAR",  # output
+    b"\x09\x01": "NAV2-POS",  # output
+    b"\x09\x11": "NAV2-VEL",  # output
     # ********************************************************************
     # https://quectel.com/content/uploads/2024/02/Quectel_LUA600A_IMU_Protocol_Specification_V1.0.pdf
     # ********************************************************************

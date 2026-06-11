@@ -120,13 +120,13 @@ def bytes2val(valb: bytes, adef: str) -> Any:
     return val
 
 
-def calc_checksum(content: bytes) -> int:
+def calc_checksum(content: bytes) -> bytes:
     """
     Calculate checksum.
 
     :param bytes content: message content, excluding header and checksum bytes
-    :return: return code
-    :rtype: int
+    :return: checksum as two bytes
+    :rtype: bytes
     """
 
     check_a = 0

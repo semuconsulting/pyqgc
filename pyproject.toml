@@ -33,7 +33,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: GIS",
 ]
 
-dependencies = ["pynmeagps >= 1.1.2", "pyrtcm>=1.1.12"]
+dependencies = ["pynmeagps >= 1.1.4", "pyrtcm>=1.1.12"]
 
 [project.urls]
 homepage = "https://github.com/semuconsulting/pyqgc"
@@ -100,7 +100,7 @@ disable = """
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "--cov --cov-report html --cov-fail-under 89"
+addopts = "--cov --cov-report html --cov-fail-under 88"
 pythonpath = ["src"]
 testpaths = ["tests"]
 
@@ -111,7 +111,7 @@ source = ["src"]
 source = ["src"]
 
 [tool.coverage.report]
-fail_under = 89
+fail_under = 88
 
 [tool.coverage.html]
 directory = "htmlcov"

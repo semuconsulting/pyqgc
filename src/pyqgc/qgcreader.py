@@ -36,7 +36,7 @@ from socket import socket
 import pynmeagps.exceptions as nme
 import pyrtcm.exceptions as rte
 from pynmeagps import NMEA_HDR, NMEAReader, SocketWrapper
-from pyrtcm import RTCMReader
+from pyrtcm import RTCMReader, escapeall
 
 from pyqgc.exceptions import (
     QGCMessageError,
@@ -417,7 +417,7 @@ class QGCReader:
                 )
             if ckm != ckv:
                 raise QGCParseError(
-                    (f"Message checksum {ckm}" f" invalid - should be {ckv}")
+                    f"Message checksum {escapeall(ckm)} invalid - should be {escapeall(ckv)}"
                 )
         # if input message (SET or POLL), determine mode automatically
         if msgmode == SETPOLL:
