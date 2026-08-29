@@ -85,6 +85,7 @@ ATTTYPE = {
 # ***************************************************************************
 # THESE ARE THE QGC PROTOCOL CORE MESSAGE IDENTITIES
 # Payloads for each of these identities are defined in the QGCtypes_* modules
+# NB: QGC msgids are expressed in big endian format
 # ***************************************************************************
 QGC_MSGIDS = {
     # ********************************************************************
