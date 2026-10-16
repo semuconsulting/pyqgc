@@ -4,7 +4,7 @@ QGC Custom Exception Types.
 Created on 6 Oct 2025
 
 :author: semuadmin (Steve Smith)
-:copyright: semuadmin © 2020
+:copyright: semuadmin © 2025
 :license: BSD 3-Clause
 """
 

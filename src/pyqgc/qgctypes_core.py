@@ -69,6 +69,9 @@ X8 = "X008"  # 64 bits field 8 Bit 63-0
 X61 = "X061"  # 61 bytes
 X250 = "X250"  # 250 bytes
 
+ALT = "_alt"
+BITFIELD = "_bit"
+GROUP = "_grp"
 PAGE53 = "page_X_053"
 VERSTR = "ver_C_018"
 SNSTR = "sn_C_001"
@@ -119,4 +122,6 @@ QGC_MSGIDS = {
     b"\x06\x01": "INF-VER",  # Tcommand/output
     b"\x06\x02": "INF-SN",  # command/output
     b"\x10\x01": "SEN-IMU",  # output
+    # TEST ONLY
+    b"\x99\x99": "TESTSCALING",  # output
 }

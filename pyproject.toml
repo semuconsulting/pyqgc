@@ -51,7 +51,7 @@ build = [
     "awscli",
     "build",
     "packaging>=24.2",
-    "pip",
+    "pip>25.1",
     "setuptools>=75.0.0",
     "twine>=6.1.0",
     "wheel",
@@ -104,7 +104,7 @@ disable = """
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "--cov --cov-report html --cov-fail-under 88"
+addopts = "--cov --cov-report html --cov-fail-under 94"
 pythonpath = ["src"]
 testpaths = ["tests"]
 
@@ -115,7 +115,7 @@ source = ["src"]
 source = ["src"]
 
 [tool.coverage.report]
-fail_under = 88
+fail_under = 94
 
 [tool.coverage.html]
 directory = "htmlcov"

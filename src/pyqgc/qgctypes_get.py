@@ -46,7 +46,7 @@ QGC_PAYLOADS_GET = {
         "msgver": U1,  # 1 for this version
         "reserved1": U4,
         "prn": U1,
-        "flag": (
+        "flag_bit": (
             X1,
             {
                 "reserved4": U5,
@@ -62,7 +62,7 @@ QGC_PAYLOADS_GET = {
         "msgver": U1,  # 1 for this version
         "reserved1": U4,
         "prn": U1,
-        "flag": (
+        "flag_bit": (
             X1,
             {
                 "rsstatus": U2,  # 0 fail, 1, pass, 2 pass after correction
@@ -77,7 +77,7 @@ QGC_PAYLOADS_GET = {
         "msgver": U1,  # 1 for this version
         "reserved1": U3,
         "prn": U1,
-        "status": (
+        "status_bit": (
             X1,
             {
                 "hasmode": U2,  # 0 testing, 1 operational
@@ -383,11 +383,33 @@ QGC_PAYLOADS_GET = {
     # payload definition is available.
     # ********************************************************************
     "QGC-NOMINAL": {
-        "group": (
+        "group_grp": (
             "None",
             {
                 "data": X1,
             },
         )
+    },
+    # TEST ONLY
+    "TESTSCALING": {
+        "msgver": U1,
+        "timestatus": U1,
+        "status_bit": (
+            X1,
+            {
+                "pugh": (U4, 4294967.296),
+                "mcgrew": U1,
+                "cuthbert": U1,
+                "dibble": U1,
+                "grubb": U1,
+            },
+        ),
+        "numvalues": U1,
+        "value_grp": (
+            "numvalues",
+            {
+                "value": (U4, 1e-5),
+            },
+        ),
     },
 }
