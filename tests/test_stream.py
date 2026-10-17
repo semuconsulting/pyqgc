@@ -440,6 +440,60 @@ class StreamTest(unittest.TestCase):
         msg2 = QGCReader.parse(msg1.serialize(), msgmode=SETPOLL)
         self.assertEqual(str(msg1), str(msg2))
 
+    def testTESTNAV(self):
+        EXPECTED_RESULT = "<QGC(TESTSCALING, msgver=0, timestatus=24, pugh=4294967.296, mcgrew=0, cuthbert=1, dibble=0, grubb=1, numvalues=2, value_01=0.0345, value_02=0.0567)>"
+        EXPECTED_RESULT2 = "<QGC(TESTSCALING, msgver=0, timestatus=24, pugh=4294967.296, mcgrew=0, cuthbert=1, dibble=0, grubb=1, numvalues=2, value_01=0.0345, value_02=0.0567)>"
+        EXPECTED_RESULT3 = "<QGC(TESTSCALING, msgver=0, timestatus=24, status=b'\\xa1', numvalues=2, value_01=0.0345, value_02=0.0567)>"
+        EXPECTED_RESULT4 = "<QGC(TESTSCALING, msgver=0, timestatus=24, status=b'\\xa1', pugh=4294967.296, mcgrew=0, cuthbert=1, dibble=0, grubb=1, numvalues=2, value_01=0.0345, value_02=0.0567)>"
+                
+        msg = QGCMessage(
+            b"\x99",
+            b"\x99",
+            parsebitfield=1,
+            msgver=0,
+            timestatus=24,
+            pugh=4294967.296,
+            mcgrew=0,
+            cuthbert=1,
+            dibble=0,
+            grubb=1,
+            numvalues=2,
+            value_01=.0345,
+            value_02=.0567,
+            )
+        print(msg)
+        self.assertEqual(str(msg), EXPECTED_RESULT)
+        msg2 = QGCReader.parse(msg.serialize())
+        self.assertEqual(str(msg2), EXPECTED_RESULT2)
+        msg2 = QGCReader.parse(msg.serialize(),parsebitfield=0)
+        self.assertEqual(str(msg2), EXPECTED_RESULT3)
+        msg2 = QGCReader.parse(msg.serialize(),parsebitfield=2)
+        self.assertEqual(str(msg2), EXPECTED_RESULT4)
+
+    def testTESTNAVnoscaling(self):
+        EXPECTED_RESULT = "<QGC(TESTSCALING, msgver=0, timestatus=24, pugh=1, mcgrew=0, cuthbert=1, dibble=0, grubb=1, numvalues=2, value_01=3450, value_02=5670)>"
+        EXPECTED_RESULT2 = "<QGC(TESTSCALING, msgver=0, timestatus=24, pugh=4294967.296, mcgrew=0, cuthbert=1, dibble=0, grubb=1, numvalues=2, value_01=0.0345, value_02=0.0567)>"
+        msg = QGCMessage(
+            b"\x99",
+            b"\x99",
+            parsebitfield=1,
+            msgver=0,
+            timestatus=24,
+            pugh=1,
+            mcgrew=0,
+            cuthbert=1,
+            dibble=0,
+            grubb=1,
+            numvalues=2,
+            value_01=3450,
+            value_02=5670,
+            scaling=False
+            )
+        self.assertEqual(str(msg), EXPECTED_RESULT)
+        msg2 = QGCReader.parse(msg.serialize(),scaling=False)
+        self.assertEqual(str(msg2), EXPECTED_RESULT)
+        msg2 = QGCReader.parse(msg.serialize(),scaling=True)
+        self.assertEqual(str(msg2), EXPECTED_RESULT2)
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']

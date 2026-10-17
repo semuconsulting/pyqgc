@@ -17,6 +17,7 @@ import pyqgc.qgctypes_core as qgt
 import pyqgc.exceptions as qge
 from pyqgc.qgctypes_core import SET, GET, VALCKSUM, CV, POLL, QGC_MSGIDS
 from pyqgc import QGCReader, QGCMessage
+from pyqgc.qgctypes_decodes import TIME_STATUS, SOL_STATUS, POS_STATUS, POS_QUALITY
 from pyqgc.qgchelpers import (
     attsiz,
     att2idx,
@@ -386,6 +387,11 @@ class StaticTest(unittest.TestCase):
             )
             msg.prn = 33
 
+    def testdecodes(self):
+        self.assertEqual(TIME_STATUS[1],"TIMERTC")
+        self.assertEqual(SOL_STATUS[2],"NO_CONVERGENCE") 
+        self.assertEqual(POS_STATUS[17],"PSRDIFF")
+        self.assertEqual(POS_QUALITY[4],"RTK_FIXED",)
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']

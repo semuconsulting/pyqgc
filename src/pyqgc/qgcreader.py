@@ -24,14 +24,16 @@ Returns both the raw binary data (as bytes) and the parsed data
 Created on 6 Oct 2025
 
 :author: semuadmin (Steve Smith)
-:copyright: semuadmin © 2020
+:copyright: semuadmin © 2025
 :license: BSD 3-Clause
 """
 
-# pylint: disable=too-many-positional-arguments
+# pylint: disable=too-many-positional-arguments,too-many-instance-attributes
 
 from logging import getLogger
 from socket import socket
+from types import NoneType
+from typing import Callable
 
 import pynmeagps.exceptions as nme
 import pyrtcm.exceptions as rte
@@ -74,10 +76,11 @@ class QGCReader:
         validate: int = VALCKSUM,
         protfilter: int = NMEA_PROTOCOL | QGC_PROTOCOL | RTCM3_PROTOCOL,
         quitonerror: int = ERR_LOG,
-        parsebitfield: bool = True,
+        parsebitfield: int = 1,
         bufsize: int = 4096,
         parsing: bool = True,
-        errorhandler: object = None,
+        errorhandler: Callable | NoneType = None,
+        scaling: bool = True,
     ):
         """Constructor.
 
@@ -89,10 +92,11 @@ class QGCReader:
             Can be OR'd (7)
         :param int quitonerror: ERR_IGNORE (0) = ignore errors,  ERR_LOG (1) = log continue,
             ERR_RAISE (2) = (re)raise (1)
-        :param bool parsebitfield: 1 = parse bitfields, 0 = leave as bytes (1)
+        :param int parsebitfield: 0 = leave as bytes; 1 = parse bitfields; 2 = bytes and parsed (1)
         :param int bufsize: socket recv buffer size (4096)
         :param bool parsing: True = parse data, False = don't parse data (output raw only) (True)
-        :param object errorhandler: error handling object or function (None)
+        :param bool scaling: True = apply scaling factors, False = don't apply scaling factors
+        :param Callable | NoneType errorhandler: error handling object or function (None)
         :raises: QGCStreamError (if mode is invalid)
         """
         # pylint: disable=too-many-arguments
@@ -106,6 +110,7 @@ class QGCReader:
         self._errorhandler = errorhandler
         self._validate = validate
         self._parsebf = parsebitfield
+        self._scaling = scaling
         self._msgmode = msgmode
         self._parsing = parsing
         self._logger = getLogger(__name__)
@@ -147,8 +152,9 @@ class QGCReader:
         :raises: Exception (if invalid or unrecognised protocol in data stream)
         """
 
-        parsing = True
-        while parsing:  # loop until end of valid message or EOF
+        raw_data = None
+        parsed_data = None
+        while True:  # loop until end of valid message or EOF
             try:
 
                 raw_data = None
@@ -165,31 +171,27 @@ class QGCReader:
                     # if protocol filter passes QGC, return message,
                     # otherwise discard and continue
                     if self._protfilter & QGC_PROTOCOL:
-                        parsing = False
-                    else:
-                        continue
+                        break
+                    continue
                 # if it's an NMEA message (b'\x24\x..)
-                elif bytehdr in NMEA_HDR:
+                if bytehdr in NMEA_HDR:
                     raw_data, parsed_data = self._parse_nmea(bytehdr)
                     # if protocol filter passes NMEA, return message,
                     # otherwise discard and continue
                     if self._protfilter & NMEA_PROTOCOL:
-                        parsing = False
-                    else:
-                        continue
+                        break
+                    continue
                 # if it's a RTCM3 message
                 # (byte1 = 0xd3; byte2 = 0b000000**)
-                elif byte1 == b"\xd3" and (byte2[0] & ~0x03) == 0:
+                if byte1 == b"\xd3" and (byte2[0] & ~0x03) == 0:
                     raw_data, parsed_data = self._parse_rtcm3(bytehdr)
                     # if protocol filter passes RTCM, return message,
                     # otherwise discard and continue
                     if self._protfilter & RTCM3_PROTOCOL:
-                        parsing = False
-                    else:
-                        continue
+                        break
+                    continue
                 # unrecognised protocol header
-                else:
-                    raise QGCParseError(f"Unknown protocol header {bytehdr}.")
+                raise QGCParseError(f"Unknown protocol header {bytehdr}.")
 
             except EOFError:
                 return (None, None)
@@ -239,6 +241,7 @@ class QGCReader:
                 msgmode=self._msgmode,
                 validate=self._validate,
                 parsebitfield=self._parsebf,
+                scaling=self._scaling,
             )
         else:
             parsed_data = None
@@ -367,7 +370,8 @@ class QGCReader:
         message: bytes,
         msgmode: int = GET,
         validate: int = VALCKSUM,
-        parsebitfield: bool = True,
+        parsebitfield: int = 1,
+        scaling: bool = True,
     ) -> object:
         """
         Parse QGC byte stream to QGCMessage object.
@@ -376,7 +380,8 @@ class QGCReader:
         :param int msgmode: GET (0), SET (1), POLL (2) (0)
         :param int validate: VALCKSUM (1) = Validate checksum,
             VALNONE (0) = ignore invalid checksum (1)
-        :param bool parsebitfield: 1 = parse bitfields, 0 = leave as bytes (1)
+        :param int parsebitfield: 1 = parse bitfields, 0 = leave as bytes (1)
+        :param bool scaling: True = apply scaling factors, False = don't apply scaling factors
         :return: QGCMessage object
         :rtype: QGCMessage
         :raises: Exception (if data stream contains invalid data or unknown message type)
@@ -432,4 +437,5 @@ class QGCReader:
             msgmode,
             payload=payload,
             parsebitfield=parsebitfield,
+            scaling=scaling,
         )

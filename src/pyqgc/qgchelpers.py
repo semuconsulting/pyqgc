@@ -5,7 +5,7 @@ outside the QGCMessage or QGCReader classes.
 Created on 6 Oct 2025
 
 :author: semuadmin (Steve Smith)
-:copyright: semuadmin © 2020
+:copyright: semuadmin © 2025
 :license: BSD 3-Clause
 """
 
@@ -13,7 +13,7 @@ import struct
 from typing import Any
 
 import pyqgc.exceptions as qge
-from pyqgc.qgctypes_core import ATTTYPE, GET, POLL, QGC_MSGIDS, SCALROUND, SET, U2
+from pyqgc.qgctypes_core import ATTTYPE, GET, POLL, QGC_MSGIDS, SET, U2
 from pyqgc.qgctypes_get import QGC_PAYLOADS_GET
 from pyqgc.qgctypes_poll import QGC_PAYLOADS_POLL
 from pyqgc.qgctypes_set import QGC_PAYLOADS_SET
@@ -97,24 +97,14 @@ def bytes2val(valb: bytes, adef: str) -> Any:
 
     """
 
-    if "*" in adef:
-        adef, scaling = adef.split("*", 1)
-        scaling = float(scaling)
-    else:
-        scaling = 1
-
     if atttyp(adef) == "X":  # bytes
         val = valb
     elif atttyp(adef) == "C":  # string
         val = valb.replace(b"\x00", b" ").decode("utf-8", errors="backslashreplace")
     elif atttyp(adef) in ("S", "U"):  # integer
         val = int.from_bytes(valb, byteorder="little", signed=atttyp(adef) == "S")
-        if scaling != 1:
-            val = round(val / scaling, SCALROUND)
     elif atttyp(adef) == "R":  # floating point
         val = struct.unpack("<f" if attsiz(adef) == 4 else "<d", valb)[0]
-        if scaling != 1:
-            val = round(val / scaling, SCALROUND)
     else:
         raise qge.QGCTypeError(f"Unknown attribute type {adef}")
     return val
@@ -316,12 +306,6 @@ def val2bytes(val: Any, adef: str) -> bytes:
 
     """
 
-    if "*" in adef:
-        adef, scaling = adef.split("*", 1)
-        scaling = float(scaling)
-    else:
-        scaling = 1
-
     try:
         if not isinstance(val, ATTTYPE[atttyp(adef)]):
             raise TypeError(
@@ -337,13 +321,9 @@ def val2bytes(val: Any, adef: str) -> bytes:
     elif atttyp(adef) == "C":  # string
         valb = f"{val:<{attsiz(adef)}}".encode("utf-8", errors="backslashreplace")
     elif atttyp(adef) in ("S", "U"):  # integer
-        if scaling != 1:
-            val = int(val * scaling)
         valb = val.to_bytes(
             attsiz(adef), byteorder="little", signed=atttyp(adef) == "S"
         )
     elif atttyp(adef) == "R":  # floating point
-        if scaling != 1:
-            val = float(val * scaling)
         valb = struct.pack("<f" if attsiz(adef) == 4 else "<d", val)
     return valb

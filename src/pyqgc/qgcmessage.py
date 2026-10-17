@@ -3,14 +3,14 @@ QGCmessage.py
 
 Main QGC Message Protocol Class.
 
-Created on 26 Sep 2020
+Created on 6 Oct 2025
 
 :author: semuadmin (Steve Smith)
-:copyright: semuadmin © 2020
+:copyright: semuadmin © 2025
 :license: BSD 3-Clause
 """
 
-# pylint: disable=too-many-positional-arguments, too-many-locals, too-many-arguments
+# pylint: disable=too-many-positional-arguments, too-many-locals, too-many-arguments, too-many-instance-attributes
 
 from types import NoneType
 
@@ -24,7 +24,9 @@ from pyqgc.qgchelpers import (
     val2bytes,
 )
 from pyqgc.qgctypes_core import (
+    BITFIELD,
     GET,
+    GROUP,
     PAGE53,
     POLL,
     QGC_HDR,
@@ -47,10 +49,11 @@ class QGCMessage:
         self,
         msggrp: bytes,
         msgid: bytes,
-        checksum: bytes | NoneType = None,
-        length: bytes | NoneType = None,
+        checksum: bytes = b"",
+        length: bytes = b"",
         msgmode: int = GET,
-        parsebitfield: bool = True,
+        parsebitfield: int = 1,
+        scaling: bool = True,
         **kwargs,
     ):
         """Constructor.
@@ -65,10 +68,11 @@ class QGCMessage:
 
         :param object msggrp: message group
         :param object msgID: message ID
-        :param bytes checksum: checksum (will be derived if None)
-        :param bytes length: payload length (will be derived if None)
+        :param bytes checksum: checksum (will be derived if null)
+        :param bytes length: payload length (will be derived if null)
         :param int msgmode: message mode (0=GET, 1=SET, 2=POLL)
-        :param bool parsebitfield: parse bitfields ('X' type attributes) Y/N
+        :param int parsebitfield: 0 = leave as bytes; 1 = parse bitfields; 2 = bytes and parsed (1)
+        :param bool scaling: True = apply scaling factors, False = don't apply scaling factors
         :param kwargs: optional payload keyword arguments
         :raises: QGCMessageError
         """
@@ -80,7 +84,7 @@ class QGCMessage:
         super().__setattr__("_immutable", False)
         self._mode = msgmode
         self._length = length  # bytes
-        if length is None:
+        if length == b"":
             self._lengthint = 0
         else:
             self._lengthint = bytes2val(length, U2)  # integer
@@ -88,6 +92,7 @@ class QGCMessage:
         self._msggrp = msggrp
         self._msgid = msgid
         self._parsebf = parsebitfield  # parsing bitfields Y/N?
+        self._scaling = scaling
         self._payload = kwargs.get("payload", b"")
         self._offset = 0  # payload offset in bytes
         self._index = []  # array of (nested) group indices
@@ -100,7 +105,7 @@ class QGCMessage:
 
         self._immutable = True  # once initialised, object is immutable
 
-    def _set_attribute(self, anam: str, pdict: dict, **kwargs):  #  -> tuple:
+    def _set_attribute(self, anam: str, pdict: dict, **kwargs):
         """
         Recursive routine to set individual or grouped payload attributes.
 
@@ -110,29 +115,30 @@ class QGCMessage:
         :param list index: repeating group index array
         :param kwargs: optional payload key/value pairs
         :return: (offset, index[])
-        :rtype: tuple
+        :rtype: tuple[int,list]
 
         """
+
         adef = pdict[anam]  # get attribute definition
-        if isinstance(
-            adef, tuple
-        ):  # repeating group of attributes or subdefined bitfield
-            numr, _ = adef
-            if numr[0] == "X":  # bitfield
-                if self._parsebf:  # if we're parsing bitfields
-                    self._set_attribute_bitfield(adef, **kwargs)
-                else:  # treat bitfield as a single byte array
-                    self._set_attribute_single(anam, numr, **kwargs)
-            else:  # repeating group of attributes
-                self._set_attribute_group(adef, **kwargs)
+        anamsfx = anam[-4:]
+        if anamsfx == BITFIELD:  # 'X' type bitfield
+            sdef, _ = adef
+            if self._parsebf in (1, 2):  # if we're parsing bitfields
+                if self._parsebf == 2:  # parse as bits and single attribute
+                    self._set_attribute_single(anam[0:-4], sdef, offset=False, **kwargs)
+                self._set_attribute_bitfield(adef, **kwargs)
+            else:  # parse as single attribute only
+                self._set_attribute_single(anam[0:-4], sdef, **kwargs)
+        elif anamsfx == GROUP:  # repeating group
+            self._set_attribute_group(adef, **kwargs)
         else:  # single attribute
             self._set_attribute_single(anam, adef, **kwargs)
 
-    def _set_attribute_group(self, adef: tuple, **kwargs):
+    def _set_attribute_group(self, adef: tuple[int, dict], **kwargs):
         """
         Process (nested) group of attributes.
 
-        :param tuple adef: attribute definition - tuple of (num repeats, attribute dict)
+        :param tuple[int, dict] adef: attribute definition - tuple of (num repeats, attribute dict)
         :param int offset: payload offset in bytes
         :param list index: repeating group index array
         :param kwargs: optional payload key/value pairs
@@ -159,20 +165,29 @@ class QGCMessage:
 
         self._index.pop()  # remove this (nested) group index
 
-    def _set_attribute_single(self, anam: str, adef: str, **kwargs):
+    def _set_attribute_single(
+        self, anam: str, adef: str | tuple[str, float], offset: bool = True, **kwargs
+    ):
         """
         Set individual attribute value, applying scaling where appropriate.
 
         :param str anam: attribute keyword
-        :param str adef: attribute definition string e.g. 'U002', 'R004*100'
+        :param str | tuple[str, float] adef: attribute definition string e.g. 'U002', 'R004*100'
         :param int offset: payload offset in bytes
         :param list index: repeating group index array
+        :param bool offset: apply payload offset (needed for parsebitfield=2)
         :param kwargs: optional payload key/value pairs
         :return: offset
         :rtype: int
 
         """
         # pylint: disable=no-member
+
+        # if attribute is scaled
+        ares = 1
+        if isinstance(adef, tuple):
+            ares = adef[1]  # attribute resolution (i.e. scaling factor)
+            adef = adef[0]  # attribute definition
 
         # if attribute is part of a (nested) repeating group, suffix name with index
         anami = anam
@@ -197,17 +212,25 @@ class QGCMessage:
         # use the appropriate offset of the payload
         if "payload" in kwargs:
             valb = self._payload[self._offset : self._offset + asiz]
-            val = bytes2val(valb, adef)
+            if ares == 1 or not self._scaling:
+                val = bytes2val(valb, adef)
+            else:
+                val = round(bytes2val(valb, adef) * ares, SCALROUND)
         else:
             # if individual keyword has been provided,
             # set to provided value, else set to
             # nominal value
             val = kwargs.get(anami, nomval(adef))
-            valb = val2bytes(val, adef)
+            if ares == 1 or not self._scaling:
+                valb = val2bytes(val, adef)
+            else:
+                valb = val2bytes(int(val / ares), adef)
             self._payload += valb
 
         setattr(self, anami, val)
-        self._offset += asiz
+
+        if offset:
+            self._offset += asiz
 
     def _set_attribute_bitfield(self, adef: tuple[str, dict], **kwargs):
         """
@@ -237,7 +260,7 @@ class QGCMessage:
         # process each flag in bitfield
         for key, keyt in bdict.items():
             bitfield, bfoffset = self._set_attribute_bits(
-                bitfield, bfoffset, key, keyt, self._index, **kwargs
+                bitfield, bfoffset, key, keyt, **kwargs
             )
 
         # update payload
@@ -250,9 +273,8 @@ class QGCMessage:
         self,
         bitfield: int,
         bfoffset: int,
-        anam: str,
-        adef: str,
-        index: list,
+        key: str,
+        keyt: str | tuple[str, float],
         **kwargs,
     ) -> tuple[int, int]:
         """
@@ -260,9 +282,8 @@ class QGCMessage:
 
         :param int bitfield: bitfield
         :param int bfoffset: bitfield offset in bits
-        :param str anam: attribute name
-        :param str adef: attribute definition e.g. 'U001'
-        :param list index: repeating group index array
+        :param str key: attribute key name
+        :param str | tuple[str,float] keyt: key type e.g. 'U001'
         :param kwargs: optional payload key/value pairs
         :return: (bitfield, bfoffset)
         :rtype: tuple[int,int]
@@ -271,34 +292,33 @@ class QGCMessage:
         # pylint: disable=no-member
 
         # if attribute is part of a (nested) repeating group, suffix name with index
-        anami = anam
-        for i in index:  # one index for each nested level
+        keyr = key
+        for i in self._index:  # one index for each nested level
             if i > 0:
-                anami += f"_{i:02d}"
+                keyr += f"_{i:02d}"
 
         # if attribute is scaled
-        if "*" in adef:
-            adef, scaling = adef.split("*", 1)
-            scaling = float(scaling)
-        else:
-            scaling = 1
+        ares = 1
+        if isinstance(keyt, tuple):
+            ares = keyt[1]  # attribute resolution (i.e. scaling factor)
+            keyt = keyt[0]  # attribute definition
 
-        asiz = attsiz(adef)  # determine flag size in bits
+        atts = attsiz(keyt)  # determine flag size in bits
 
         if "payload" in kwargs:
-            val = (bitfield >> bfoffset) & ((1 << asiz) - 1)
-            if scaling != 1:
-                val = round(val / scaling, SCALROUND)
+            val = (bitfield >> bfoffset) & ((1 << atts) - 1)
+            if ares != 1 and self._scaling:
+                val = round(val * ares, SCALROUND)
         else:
-            if scaling == 1:
-                val = kwargs.get(anami, 0)
-            else:
-                val = int(kwargs.get(anami, 0) * scaling)
-            bitfield = bitfield | (val << bfoffset)
+            val = kwargs.get(keyr, 0)
+            val2 = val
+            if ares != 1 and self._scaling:
+                val2 = int(val2 / ares)
+            bitfield = bitfield | (val2 << bfoffset)
 
-        if anam[0:8] != "reserved":  # don't bother to set reserved bits
-            setattr(self, anami, val)
-        return (bitfield, bfoffset + asiz)
+        if key[0:8] != "reserved":  # don't bother to set reserved bits
+            setattr(self, keyr, val)
+        return (bitfield, bfoffset + atts)
 
     def _do_len_checksum(self):
         """
@@ -307,10 +327,10 @@ class QGCMessage:
         """
 
         payload = b"" if self._payload is None else self._payload
-        if self._length is None:
+        if self._length == b"":
             self._lengthint = len(payload)
             self._length = val2bytes(len(payload), U2)
-        if self._checksum is None:
+        if self._checksum == b"":
             self._checksum = calc_checksum(
                 self._msggrp + self._msgid + self._length + payload
             )
