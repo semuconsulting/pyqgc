@@ -24,7 +24,7 @@ This is an independent project and we have no affiliation whatsoever with Quecte
 ![Status](https://img.shields.io/pypi/status/pyqgc)
 ![Release](https://img.shields.io/github/v/release/semuconsulting/pyqgc)
 ![Build](https://img.shields.io/github/actions/workflow/status/semuconsulting/pyqgc/main.yml?branch=main)
-![Coverage](https://github.com/semuconsulting/pyqgc/blob/main/images/coverage.svg?raw=true)
+![Coverage](https://github.com/semuconsulting/pyqgc/blob/main/images/coverage95.svg?raw=true)
 ![Release Date](https://img.shields.io/github/release-date-pre/semuconsulting/pyqgc)
 ![Last Commit](https://img.shields.io/github/last-commit/semuconsulting/pyqgc)
 ![Contributors](https://img.shields.io/github/contributors/semuconsulting/pyqgc.svg)
@@ -45,7 +45,7 @@ Contributions _**from human beings**_ welcome - please refer to [CONTRIBUTING.MD
 
 ![Python version](https://img.shields.io/pypi/pyversions/pyqgc.svg?style=flat)
 [![PyPI version](https://img.shields.io/pypi/v/pyqgc.svg?style=flat)](https://pypi.org/project/pyqgc/)
-[![PyPI downloads](https://github.com/semuconsulting/pygpsclient/blob/main/images/clickpy_top25.svg?raw=true)](https://clickpy.clickhouse.com/dashboard/pyqgc)
+[![PyPI downloads](https://github.com/semuconsulting/pygpsclient/blob/main/images/clickpy_top10.svg?raw=true)](https://clickpy.clickhouse.com/dashboard/pyqgc)
 
 `pyqgc` is compatible with Python>=3.10. In the following, `python3` & `pip` refer to the Python 3 executables. You may need to substitute `python` for `python3`, depending on your particular environment (*on Windows it's generally `python`*).
 
